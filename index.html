@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Xenopixel v3 Font Manager</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#2d3f55;--surface3:#334155;
+  --accent:#3b82f6;--accent-h:#2563eb;--text:#f1f5f9;--text-dim:#94a3b8;
+  --text-muted:#64748b;--danger:#ef4444;--danger-h:#dc2626;
+  --success:#22c55e;--warning:#f59e0b;--border:#334155;
+  --radius:10px;--radius-sm:6px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.app-title{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.app-title span{color:var(--accent)}
+.sd-path{font-size:12px;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 20px;gap:4px}
+.nav-tab{padding:10px 16px;font-size:14px;font-weight:500;color:var(--text-dim);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.nav-tab:hover{color:var(--text)}.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+main{flex:1;padding:20px;overflow-y:auto}
+.view{display:none}.view.active{display:block}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.section-title{font-size:16px;font-weight:600}
+/* Landing */
+.landing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;gap:16px}
+.landing-icon{font-size:64px}.landing h2{font-size:28px}
+.landing p{color:var(--text-dim);max-width:480px;line-height:1.6}
+/* Font Grid */
+.font-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.font-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:border-color .15s,transform .1s;position:relative;user-select:none}
+.font-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.font-card.drag-over{border-color:var(--warning);background:var(--surface2)}
+.font-card.dragging{opacity:.5}
+.font-card-bar{height:6px}
+.font-card-body{padding:12px 14px}
+.font-card-slot{font-size:11px;color:var(--text-muted);margin-bottom:2px}
+.font-card-name{font-size:15px;font-weight:600;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.font-card-meta{display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface3);color:var(--text-dim)}
+.font-card-actions{display:flex;gap:4px;padding:8px 14px;border-top:1px solid var(--border);opacity:0;transition:opacity .15s}
+.font-card:hover .font-card-actions{opacity:1}
+.add-slot-card{background:var(--surface);border:2px dashed var(--border);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;min-height:108px;cursor:pointer;color:var(--text-muted);font-size:14px;gap:8px;transition:border-color .15s,color .15s}
+.add-slot-card:hover{border-color:var(--accent);color:var(--accent)}
+/* Buttons */
+.btn{padding:8px 16px;border-radius:var(--radius-sm);border:none;font-size:14px;font-weight:500;cursor:pointer;transition:background .15s,opacity .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover:not(:disabled){background:var(--accent-h)}
+.btn-secondary{background:var(--surface3);color:var(--text)}.btn-secondary:hover:not(:disabled){background:var(--surface2)}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover:not(:disabled){background:var(--danger-h)}
+.btn-ghost{background:transparent;color:var(--text-dim);padding:4px 8px;font-size:12px}.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-icon{padding:6px;border-radius:var(--radius-sm);background:var(--surface2);border:none;cursor:pointer;color:var(--text-dim);font-size:14px;transition:background .15s,color .15s;display:inline-flex;align-items:center}
+.btn-icon:hover{background:var(--surface3);color:var(--text)}
+.btn-icon.danger:hover{background:#7f1d1d;color:var(--danger)}
+/* Panel */
+.panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none}
+.panel-overlay.open{display:block}
+.panel{position:fixed;right:0;top:0;bottom:0;width:min(660px,100vw);background:var(--surface);border-left:1px solid var(--border);z-index:201;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease;overflow:hidden}
+.panel.open{transform:translateX(0)}
+.panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.panel-title{font-size:16px;font-weight:600;flex:1}
+.panel-body{flex:1;overflow-y:auto;padding:20px}
+.panel-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+/* Forms */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:500;color:var(--text-dim);margin-bottom:6px}
+.form-input{width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--accent)}
+.form-select{width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;cursor:pointer}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.color-row{display:flex;gap:8px;align-items:flex-end}
+.color-row .form-group{flex:1;margin-bottom:0}
+input[type=color]{width:100%;height:38px;padding:2px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer}
+/* Sound Categories */
+.cat-section{margin-bottom:6px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.cat-header{padding:10px 14px;background:var(--surface2);display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.cat-header:hover{background:var(--surface3)}
+.cat-name{font-size:13px;font-weight:600;flex:1}
+.cat-count{font-size:11px;color:var(--text-muted)}
+.cat-toggle{color:var(--text-muted);font-size:11px;transition:transform .15s}
+.cat-toggle.open{transform:rotate(90deg)}
+.cat-files{display:none}.cat-files.open{display:block}
+.sound-file{padding:8px 14px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border)}
+.sound-file:hover{background:var(--bg)}
+.sound-name{font-size:13px;flex:1;color:var(--text-dim)}
+.play-btn{background:none;border:none;cursor:pointer;color:var(--accent);font-size:16px;padding:2px 4px;transition:color .1s;line-height:1}
+.play-btn:hover{color:#60a5fa}.play-btn.playing{color:var(--warning)}
+/* System */
+.system-section{margin-bottom:24px}
+.system-section-title{font-size:14px;font-weight:600;color:var(--text-dim);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.system-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:6px}
+.system-file{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;gap:8px}
+.system-file-name{font-size:12px;flex:1;color:var(--text-dim)}
+/* Settings */
+.settings-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.settings-section-title{font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.setting-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:16px}
+.setting-row:last-child{border-bottom:none}
+.setting-label{flex:1}
+.setting-name{font-size:13px;font-weight:500}
+.setting-desc{font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.4}
+.setting-control{min-width:160px}
+.setting-control .form-input{width:100%}
+.toggle-wrap{display:flex;align-items:center;gap:8px}
+/* Backup */
+.backup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.backup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.backup-card-title{font-size:15px;font-weight:600;margin-bottom:6px}
+.backup-card-desc{font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.5}
+.backup-font-list{display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto;margin-bottom:12px}
+.backup-font-item{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg);border-radius:var(--radius-sm);cursor:pointer}
+.backup-font-item:hover{background:var(--surface2)}
+.backup-font-item input[type=checkbox]{accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+.backup-font-label{font-size:13px;flex:1}
+.backup-font-slot{font-size:11px;color:var(--text-muted);margin-left:auto}
+/* Import */
+.import-dropzone{border:2px dashed var(--border);border-radius:var(--radius);padding:40px;text-align:center;color:var(--text-dim);cursor:pointer;transition:border-color .15s,background .15s;margin-bottom:16px}
+.import-dropzone:hover,.import-dropzone.drag-active{border-color:var(--accent);background:rgba(59,130,246,.05);color:var(--text)}
+.import-dropzone-icon{font-size:40px;margin-bottom:8px}
+.resource-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.resource-link{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;text-decoration:none;color:var(--text);transition:border-color .15s;display:block}
+.resource-link:hover{border-color:var(--accent)}
+.resource-link-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.resource-link-desc{font-size:12px;color:var(--text-dim);line-height:1.4}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:min(420px,90vw);max-height:80vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:10px}
+.modal-body{font-size:14px;color:var(--text-dim);margin-bottom:20px;line-height:1.5}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end}
+/* Toast */
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:400;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{padding:12px 16px;border-radius:var(--radius-sm);font-size:14px;color:#fff;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;max-width:320px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{background:#166534;border:1px solid #22c55e}
+.toast.error{background:#7f1d1d;border:1px solid #ef4444}
+.toast.info{background:#1e3a5f;border:1px solid #3b82f6}
+/* Misc */
+.divider{height:1px;background:var(--border);margin:20px 0}
+.muted{color:var(--text-muted);font-size:13px}
+.loading{display:flex;align-items:center;justify-content:center;padding:40px;gap:12px;color:var(--text-dim)}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--surface3)}
+.progress-wrap{background:var(--surface3);border-radius:3px;height:6px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .2s}
+h3{font-size:14px;font-weight:600;color:var(--text-dim);margin:16px 0 10px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="app-title">&#9889; Xenopixel <span>v3</span> Font Manager</div>
+  <div class="sd-path" id="sdPath">No SD card loaded</div>
+  <div style="display:flex;gap:8px;margin-left:auto">
+    <button class="btn btn-secondary btn-sm" id="reloadBtn" style="display:none" onclick="reloadSD()">&#8635; Reload</button>
+    <button class="btn btn-primary" id="openSdBtn" onclick="openSD()">&#128190; Open SD Card</button>
+  </div>
+</header>
+
+<nav id="mainNav" style="display:none">
+  <button class="nav-tab active" data-view="fonts">&#127926; Fonts</button>
+  <button class="nav-tab" data-view="system">&#9881; System Sounds</button>
+  <button class="nav-tab" data-view="settings">&#128295; Saber Settings</button>
+  <button class="nav-tab" data-view="backup">&#128190; Backup</button>
+  <button class="nav-tab" data-view="import">&#11015; Import</button>
+</nav>
+
+<main>
+  <div class="view active" id="view-landing">
+    <div class="landing">
+      <div class="landing-icon">&#9889;</div>
+      <h2>Xenopixel v3 Font Manager</h2>
+      <p>Plug your saber's SD card into your computer, then click "Open SD Card" to manage your fonts. Requires Chrome or Edge.</p>
+      <button class="btn btn-primary" onclick="openSD()" style="margin-top:8px;font-size:15px;padding:12px 24px">&#128190; Open SD Card</button>
+    </div>
+  </div>
+
+  <div class="view" id="view-fonts">
+    <div class="section-header">
+      <div>
+        <div class="section-title" id="fontsTitle">Font Slots</div>
+        <div class="muted" id="fontsSubtitle"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" id="sortBtn" onclick="toggleSort()">&#8597; Slot #</button>
+      </div>
+    </div>
+    <div class="font-grid" id="fontGrid"></div>
+  </div>
+
+  <div class="view" id="view-system">
+    <div class="section-header">
+      <div class="section-title">System Sounds</div>
+      <div class="muted">setting/ folder</div>
+    </div>
+    <div id="systemContent"><div class="loading"><div class="spinner"></div> Loading...</div></div>
+  </div>
+
+  <div class="view" id="view-settings">
+    <div class="section-header">
+      <div class="section-title">Saber Settings</div>
+      <button class="btn btn-primary btn-sm" onclick="saveSettings()">&#128190; Save to SD</button>
+    </div>
+    <div id="settingsContent"></div>
+  </div>
+
+  <div class="view" id="view-backup">
+    <div class="section-header"><div class="section-title">Backup &amp; Restore</div></div>
+    <div id="backupContent"></div>
+  </div>
+
+  <div class="view" id="view-import">
+    <div class="section-header"><div class="section-title">Import Fonts</div></div>
+    <div id="importContent"></div>
+  </div>
+</main>
+
+<!-- Font Editor Panel -->
+<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+<div class="panel" id="fontPanel">
+  <div class="panel-header">
+    <button class="btn-icon" onclick="closePanel()">&#8592;</button>
+    <div class="panel-title" id="panelTitle">Edit Font</div>
+    <button class="btn-icon danger" id="panelDeleteBtn" title="Delete slot">&#128465;</button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+  <div class="panel-footer">
+    <button class="btn btn-secondary" onclick="closePanel()">Cancel</button>
+    <button class="btn btn-primary" id="panelSaveBtn" onclick="saveFontPanel()">Save Changes</button>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <div class="modal-title" id="confirmTitle">Confirm</div>
+    <div class="modal-body" id="confirmBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" id="confirmOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Setup Modal -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-title">Install Font to Slot</div>
+    <div class="modal-body" id="importModalBody">
+      <div class="form-group">
+        <label class="form-label">Font Name</label>
+        <input class="form-input" id="importFontName" placeholder="e.g. Darth Vader">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target Slot</label>
+        <select class="form-select" id="importTargetSlot"></select>
+      </div>
+      <div id="importSlotWarning" style="color:var(--warning);font-size:12px;margin-top:4px;display:none">
+        This slot is occupied — existing font will be replaced.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('importModal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" id="importConfirmBtn">Install</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+
+const SOUND_CATS = {
+  hum:'Hum',in:'Ignition',out:'Retraction',swing:'Swing',
+  swingh:'Swing Heavy',swingl:'Swing Light',clash:'Clash',
+  blaster:'Blaster Deflect',force:'Force',lock:'Lockup Loop',
+  beginlock:'Lockup Start',endlock:'Lockup End',
+  drag:'Drag Loop',begindrag:'Drag Start',enddrag:'Drag End',
+  melt:'Melt Loop',beginmelt:'Melt Start',endmelt:'Melt End',
+  stab:'Stab',spin:'Spin',font:'Font Announce',track:'Music Track'
+};
+
+const HUM_FX = ['Fire','Steady','Unstable','Rainbow','Candy','Crack','Pulse','Flashing'];
+const BLASTER_FX = ['Effect 1','Effect 2','Effect 3'];
+const FORCE_FX = ['Effect 1','Effect 2'];
+const LOCKUP_FX = ['Effect 1'];
+const FOC_FX = ['Effect 1','Effect 2','Effect 3'];
+const BLADE_STYLES = ['Standard','Velocity','Torch','Blaster Mode','Ghost Mode',
+  'Special Preon 1','Special Preon 2','Special Preon 3','Special Preon 4',
+  'Special Preon 5','Special Preon 6','Special Preon 7'];
+
+const SYSTEM_SINGLES = [
+  'appconnected','appdisconnected','batterylevel','beginningupdate','charging',
+  'clashoff','clashon','colorchange','colorselected','configorfoldererror',
+  'countdown','entermultiblockmode','entermultilockmode','exitmultiblockmode',
+  'exitmultilockmode','fontnotfound','lowbattery','motioncontroloff',
+  'motioncontrolon','percent','pixeltoRGB','poweroff','poweron','ready',
+  'RGBtopixel','SDcarderror','sensorerror','updatesuccessful','volumelevel',
+  'blade','lighteffect'
+];
+const SYSTEM_NUMBERED = ['volume','power','blade','lighteffect','saber'];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+
+let sdRoot = null;
+let fonts = [];
+let systemFileMap = {};
+let systemHandles = {};
+let configRaw = '';
+let configParsed = {};
+let editingSlot = null;
+let currentAudio = null;
+let currentPlayBtn = null;
+let dragSrcSlot = null;
+let sortByName = false;
+
+// ─── FILE SYSTEM UTILS ────────────────────────────────────────────────────────
+
+async function openSD() {
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    sdRoot = handle;
+    document.getElementById('sdPath').textContent = handle.name;
+    document.getElementById('reloadBtn').style.display = '';
+    document.getElementById('mainNav').style.display = '';
+    await scanSD();
+    showView('fonts');
+    showToast('SD card loaded', 'success');
+  } catch(e) {
+    if (e.name !== 'AbortError') showToast('Could not open SD card: ' + e.message, 'error');
+  }
+}
+
+async function reloadSD() {
+  if (!sdRoot) return;
+  await scanSD();
+  renderCurrentView();
+  showToast('Reloaded', 'info');
+}
+
+async function readText(dirHandle, filename) {
+  try {
+    const fh = await dirHandle.getFileHandle(filename);
+    const f = await fh.getFile();
+    return await f.text();
+  } catch { return null; }
+}
+
+async function writeText(dirHandle, filename, text) {
+  const fh = await dirHandle.getFileHandle(filename, { create: true });
+  const w = await fh.createWritable();
+  await w.write(text);
+  await w.close();
+}
+
+async function copyFileHandle(srcHandle, destDir, destName) {
+  const file = await srcHandle.getFile();
+  const ab = await file.arrayBuffer();
+  const dh = await destDir.getFileHandle(destName, { create: true });
+  const w = await dh.createWritable();
+  await w.write(ab);
+  await w.close();
+}
+
+async function copyDir(srcDir, destDir) {
+  for await (const [name, handle] of srcDir.entries()) {
+    if (handle.kind === 'file') await copyFileHandle(handle, destDir, name);
+  }
+}
+
+async function dirExists(parent, name) {
+  try { await parent.getDirectoryHandle(name); return true; }
+  catch { return false; }
+}
+
+async function getOrCreateDir(parent, name) {
+  return await parent.getDirectoryHandle(name, { create: true });
+}
+
+// ─── FONT CONFIG PARSING ──────────────────────────────────────────────────────
+
+function parseFontConfig(text) {
+  if (!text) return null;
+  const line = text.trim().split('\n')[0].trim();
+  const eq = line.indexOf('=');
+  if (eq < 0) return null;
+  const name = line.substring(0, eq).trim();
+  const rest = line.substring(eq + 1).trim();
+  const cm = rest.match(/^\((\d+),(\d+),(\d+)\)(.*)/);
+  if (!cm) return { name, color: { r:255,g:255,b:255 }, paramsStr: '' };
+  return {
+    name,
+    color: { r: parseInt(cm[1]), g: parseInt(cm[2]), b: parseInt(cm[3]) },
+    paramsStr: cm[4]  // e.g. ",1,0,1,0,0,0,200,500%"
+  };
+}
+
+function getParams(fc) {
+  if (!fc || !fc.paramsStr) return [1,0,0,0,0,0,200,500];
+  return fc.paramsStr.replace('%','').split(',').filter(s=>s!=='').map(Number);
+}
+
+function serializeFontConfig(name, color, paramsStr) {
+  return `${name}=(${color.r},${color.g},${color.b})${paramsStr}\n`;
+}
+
+function rgbToHex({r,g,b}) {
+  return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return {r,g,b};
+}
+
+// ─── SCANNING ─────────────────────────────────────────────────────────────────
+
+async function scanSD() {
+  fonts = [];
+  systemFileMap = {};
+  systemHandles = {};
+  configRaw = '';
+  configParsed = {};
+
+  for await (const [name, handle] of sdRoot.entries()) {
+    if (handle.kind !== 'directory') continue;
+    if (name === 'setting' || name === 'System Volume Information') {
+      if (name === 'setting') await scanSetting(handle);
+      continue;
+    }
+    if (/^\d+$/.test(name)) {
+      const font = await scanFont(parseInt(name), handle);
+      fonts.push(font);
+    }
+  }
+  fonts.sort((a,b) => a.slot - b.slot);
+}
+
+async function scanFont(slot, handle) {
+  const cfgText = await readText(handle, 'fontconfig.ini');
+  const fc = parseFontConfig(cfgText);
+  const fileMap = {};
+  for await (const [name, fh] of handle.entries()) {
+    if (fh.kind !== 'file' || !name.toLowerCase().endsWith('.wav')) continue;
+    const parsed = parseFileName(name);
+    if (!parsed) continue;
+    if (!fileMap[parsed.cat]) fileMap[parsed.cat] = [];
+    fileMap[parsed.cat].push({ num: parsed.num, name, handle: fh });
+  }
+  for (const cat of Object.keys(fileMap)) {
+    fileMap[cat].sort((a,b) => a.num - b.num);
+  }
+  return { slot, handle, fc, fileMap,
+    name: fc ? fc.name : `Font ${slot}`,
+    color: fc ? fc.color : {r:100,g:100,b:255} };
+}
+
+function parseFileName(name) {
+  const m = name.match(/^(.+?) \((\d+)\)\.wav$/i);
+  if (m) return { cat: m[1].toLowerCase(), num: parseInt(m[2]) };
+  const m2 = name.match(/^(.+?)\.wav$/i);
+  if (m2) return { cat: m2[1].toLowerCase(), num: 1 };
+  return null;
+}
+
+async function scanSetting(handle) {
+  configRaw = await readText(handle, 'config.ini') || '';
+  configParsed = parseINI(configRaw);
+  for await (const [name, fh] of handle.entries()) {
+    if (fh.kind !== 'file') continue;
+    if (name === 'config.ini') { systemHandles['config.ini'] = fh; continue; }
+    if (!name.toLowerCase().endsWith('.wav')) continue;
+    const parsed = parseFileName(name);
+    if (!parsed) continue;
+    const key = parsed.cat;
+    if (!systemFileMap[key]) systemFileMap[key] = [];
+    systemFileMap[key].push({ num: parsed.num, name, handle: fh });
+  }
+  for (const cat of Object.keys(systemFileMap)) {
+    systemFileMap[cat].sort((a,b) => a.num - b.num);
+  }
+}
+
+function parseINI(text) {
+  const result = {};
+  for (const line of text.split('\n')) {
+    const t = line.trim();
+    if (!t || t.startsWith('#')) continue;
+    const eq = t.indexOf('=');
+    if (eq < 0) continue;
+    result[t.substring(0, eq).trim()] = t.substring(eq + 1).trim();
+  }
+  return result;
+}
+
+// ─── AUDIO ────────────────────────────────────────────────────────────────────
+
+async function playAudio(handle, btn) {
+  stopAudio();
+  try {
+    const file = await handle.getFile();
+    const url = URL.createObjectURL(file);
+    currentAudio = new Audio(url);
+    currentPlayBtn = btn;
+    if (btn) btn.classList.add('playing');
+    currentAudio.onended = () => {
+      URL.revokeObjectURL(url);
+      if (currentPlayBtn) currentPlayBtn.classList.remove('playing');
+      currentAudio = null; currentPlayBtn = null;
+    };
+    currentAudio.play();
+  } catch(e) { showToast('Could not play audio', 'error'); }
+}
+
+function stopAudio() {
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  if (currentPlayBtn) { currentPlayBtn.classList.remove('playing'); currentPlayBtn = null; }
+}
+
+// ─── SLOT OPERATIONS ──────────────────────────────────────────────────────────
+
+async function swapSlots(slotA, slotB) {
+  const tmpName = '__xp_swap_tmp__';
+  // A → tmp
+  const tmpDir = await getOrCreateDir(sdRoot, tmpName);
+  const aDirH = await sdRoot.getDirectoryHandle(String(slotA));
+  const bDirH = await sdRoot.getDirectoryHandle(String(slotB));
+  await copyDir(aDirH, tmpDir);
+  // Clear A, copy B → A
+  await sdRoot.removeEntry(String(slotA), { recursive: true });
+  const newA = await getOrCreateDir(sdRoot, String(slotA));
+  await copyDir(bDirH, newA);
+  // Clear B, copy tmp → B
+  await sdRoot.removeEntry(String(slotB), { recursive: true });
+  const newB = await getOrCreateDir(sdRoot, String(slotB));
+  await copyDir(tmpDir, newB);
+  // Remove tmp
+  await sdRoot.removeEntry(tmpName, { recursive: true });
+}
+
+async function deleteSlot(slot) {
+  await sdRoot.removeEntry(String(slot), { recursive: true });
+}
+
+async function addEmptySlot(slot, fontName) {
+  const dir = await getOrCreateDir(sdRoot, String(slot));
+  const color = { r:255, g:255, b:255 };
+  await writeText(dir, 'fontconfig.ini',
+    serializeFontConfig(fontName, color, ',1,0,0,0,0,0,200,500'));
+}
+
+// ─── BACKUP ───────────────────────────────────────────────────────────────────
+
+async function backupToZip(slots, includeSettings) {
+  if (typeof JSZip === 'undefined') { showToast('JSZip not loaded', 'error'); return; }
+  showToast('Creating backup ZIP…', 'info');
+  const zip = new JSZip();
+  for (const slot of slots) {
+    const font = fonts.find(f => f.slot === slot);
+    if (!font) continue;
+    const folder = zip.folder(String(slot));
+    for await (const [name, fh] of font.handle.entries()) {
+      if (fh.kind !== 'file') continue;
+      const file = await fh.getFile();
+      const ab = await file.arrayBuffer();
+      folder.file(name, ab);
+    }
+  }
+  if (includeSettings) {
+    const settingDir = await sdRoot.getDirectoryHandle('setting');
+    const sfolder = zip.folder('setting');
+    for await (const [name, fh] of settingDir.entries()) {
+      if (fh.kind !== 'file') continue;
+      const file = await fh.getFile();
+      const ab = await file.arrayBuffer();
+      sfolder.file(name, ab);
+    }
+  }
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 3 } });
+  const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  const fname = slots.length === 1
+    ? `xenopixel-slot${slots[0]}-${ts}.zip`
+    : `xenopixel-backup-${ts}.zip`;
+  downloadBlob(blob, fname);
+  showToast('Backup downloaded', 'success');
+}
+
+async function backupToFolder(slots, includeSettings) {
+  let destRoot;
+  try { destRoot = await window.showDirectoryPicker({ mode: 'readwrite' }); }
+  catch(e) { if(e.name!=='AbortError') showToast('Cancelled','info'); return; }
+  showToast('Copying to folder…', 'info');
+  const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,16);
+  const backupDir = await getOrCreateDir(destRoot, `xenopixel-backup-${ts}`);
+  for (const slot of slots) {
+    const font = fonts.find(f => f.slot === slot);
+    if (!font) continue;
+    const slotDir = await getOrCreateDir(backupDir, String(slot));
+    await copyDir(font.handle, slotDir);
+  }
+  if (includeSettings) {
+    const settingDir = await sdRoot.getDirectoryHandle('setting');
+    const sdest = await getOrCreateDir(backupDir, 'setting');
+    await copyDir(settingDir, sdest);
+  }
+  showToast('Backup copied to folder', 'success');
+}
+
+async function restoreFromZip(file) {
+  if (typeof JSZip === 'undefined') { showToast('JSZip not loaded', 'error'); return; }
+  showToast('Restoring…', 'info');
+  const zip = await JSZip.loadAsync(file);
+  const slots = new Set();
+  zip.forEach((path) => { const m = path.match(/^(\d+)\//); if(m) slots.add(m[1]); });
+  for (const slot of slots) {
+    if (await dirExists(sdRoot, slot)) await sdRoot.removeEntry(slot, { recursive: true });
+    const dir = await getOrCreateDir(sdRoot, slot);
+    const prefix = slot + '/';
+    for (const [path, entry] of Object.entries(zip.files)) {
+      if (!path.startsWith(prefix) || entry.dir) continue;
+      const name = path.substring(prefix.length);
+      if (!name) continue;
+      const ab = await entry.async('arraybuffer');
+      const fh = await dir.getFileHandle(name, { create: true });
+      const w = await fh.createWritable();
+      await w.write(ab);
+      await w.close();
+    }
+  }
+  if (zip.files['setting/config.ini']) {
+    const settingDir = await sdRoot.getDirectoryHandle('setting');
+    for (const [path, entry] of Object.entries(zip.files)) {
+      if (!path.startsWith('setting/') || entry.dir) continue;
+      const name = path.substring('setting/'.length);
+      if (!name) continue;
+      const ab = await entry.async('arraybuffer');
+      const fh = await settingDir.getFileHandle(name, { create: true });
+      const w = await fh.createWritable();
+      await w.write(ab);
+      await w.close();
+    }
+  }
+  showToast('Restore complete', 'success');
+  await reloadSD();
+}
+
+// ─── IMPORT ───────────────────────────────────────────────────────────────────
+
+async function importFontFromZip(zipFile, targetSlot, fontName) {
+  if (typeof JSZip === 'undefined') { showToast('JSZip not loaded', 'error'); return; }
+  const zip = await JSZip.loadAsync(zipFile);
+  // Find wav files: may be at root or inside a single subfolder
+  let wavEntries = [];
+  zip.forEach((path, entry) => {
+    if (!entry.dir && path.toLowerCase().endsWith('.wav')) wavEntries.push({ path, entry });
+  });
+  if (!wavEntries.length) { showToast('No WAV files found in ZIP', 'error'); return; }
+  // Detect prefix (single subfolder)
+  const firstPath = wavEntries[0].path;
+  const slashIdx = firstPath.indexOf('/');
+  const allSameDir = slashIdx > 0 && wavEntries.every(e => e.path.startsWith(firstPath.substring(0, slashIdx+1)));
+  const prefix = allSameDir ? firstPath.substring(0, slashIdx+1) : '';
+  // Write to target slot
+  if (await dirExists(sdRoot, String(targetSlot))) await sdRoot.removeEntry(String(targetSlot), { recursive: true });
+  const dir = await getOrCreateDir(sdRoot, String(targetSlot));
+  for (const { path, entry } of wavEntries) {
+    const name = path.substring(prefix.length);
+    if (!name) continue;
+    const ab = await entry.async('arraybuffer');
+    const fh = await dir.getFileHandle(name, { create: true });
+    const w = await fh.createWritable();
+    await w.write(ab);
+    await w.close();
+  }
+  // Also copy fontconfig.ini if present
+  const cfgEntry = zip.file(prefix + 'fontconfig.ini');
+  if (cfgEntry) {
+    const txt = await cfgEntry.async('text');
+    const parsed = parseFontConfig(txt);
+    const fc = parsed || { name: fontName, color:{r:255,g:255,b:255}, paramsStr:',1,0,0,0,0,0,200,500' };
+    if (fontName) fc.name = fontName;
+    await writeText(dir, 'fontconfig.ini', serializeFontConfig(fc.name, fc.color, fc.paramsStr));
+  } else {
+    await writeText(dir, 'fontconfig.ini',
+      serializeFontConfig(fontName || `Font ${targetSlot}`, {r:255,g:255,b:255}, ',1,0,0,0,0,0,200,500'));
+  }
+  showToast(`Font installed to slot ${targetSlot}`, 'success');
+  await reloadSD();
+  showView('fonts');
+}
+
+async function importFontFromFolder(srcHandle, targetSlot, fontName) {
+  if (await dirExists(sdRoot, String(targetSlot))) await sdRoot.removeEntry(String(targetSlot), { recursive: true });
+  const dir = await getOrCreateDir(sdRoot, String(targetSlot));
+  for await (const [name, fh] of srcHandle.entries()) {
+    if (fh.kind !== 'file') continue;
+    await copyFileHandle(fh, dir, name);
+  }
+  if (!await readText(dir, 'fontconfig.ini')) {
+    await writeText(dir, 'fontconfig.ini',
+      serializeFontConfig(fontName || `Font ${targetSlot}`, {r:255,g:255,b:255}, ',1,0,0,0,0,0,200,500'));
+  } else if (fontName) {
+    const txt = await readText(dir, 'fontconfig.ini');
+    const fc = parseFontConfig(txt);
+    if (fc) { fc.name = fontName; await writeText(dir, 'fontconfig.ini', serializeFontConfig(fc.name, fc.color, fc.paramsStr)); }
+  }
+  showToast(`Font installed to slot ${targetSlot}`, 'success');
+  await reloadSD();
+  showView('fonts');
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// ─── CONFIG.INI ───────────────────────────────────────────────────────────────
+
+async function saveSettings() {
+  if (!sdRoot) return;
+  try {
+    const settingDir = await sdRoot.getDirectoryHandle('setting');
+    const lines = configRaw.split('\n');
+    const updated = lines.map(line => {
+      const t = line.trim();
+      if (t.startsWith('#') || !t) return line;
+      const eq = t.indexOf('=');
+      if (eq < 0) return line;
+      const key = t.substring(0, eq).trim();
+      const el = document.querySelector(`[data-cfg="${key}"]`);
+      if (!el) return line;
+      const val = el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value;
+      return `${key}=${val}`;
+    });
+    await writeText(settingDir, 'config.ini', updated.join('\n'));
+    configRaw = updated.join('\n');
+    configParsed = parseINI(configRaw);
+    showToast('Settings saved', 'success');
+  } catch(e) { showToast('Save failed: ' + e.message, 'error'); }
+}
+
+// ─── UI: FONTS VIEW ───────────────────────────────────────────────────────────
+
+function renderFonts() {
+  const list = sortByName ? [...fonts].sort((a,b) => a.name.localeCompare(b.name)) : [...fonts].sort((a,b) => a.slot - b.slot);
+  document.getElementById('fontsTitle').textContent = `Font Slots (${fonts.length})`;
+  document.getElementById('fontsSubtitle').textContent = fonts.length > 0 ? `${fonts.length} fonts loaded — drag cards to swap slots` : '';
+
+  const grid = document.getElementById('fontGrid');
+  grid.innerHTML = '';
+  list.forEach(font => grid.appendChild(makeFontCard(font)));
+  // Add slot button
+  const add = document.createElement('div');
+  add.className = 'add-slot-card';
+  add.innerHTML = '<span style="font-size:24px">+</span> Add Font Slot';
+  add.onclick = promptAddSlot;
+  grid.appendChild(add);
+}
+
+function makeFontCard(font) {
+  const div = document.createElement('div');
+  div.className = 'font-card';
+  div.draggable = true;
+  div.dataset.slot = font.slot;
+  const hex = rgbToHex(font.color);
+  const fileCount = Object.values(font.fileMap).reduce((s,a) => s+a.length, 0);
+  const params = getParams(font.fc);
+  const humFx = HUM_FX[params[0]] || 'Unknown';
+  const style = BLADE_STYLES[params[5]] || 'Standard';
+  div.innerHTML = `
+    <div class="font-card-bar" style="background:${hex}"></div>
+    <div class="font-card-body">
+      <div class="font-card-slot">Slot ${font.slot}</div>
+      <div class="font-card-name">${esc(font.name)}</div>
+      <div class="font-card-meta">
+        <span class="badge" style="background:${hex}20;color:${hex}">${humFx}</span>
+        <span class="badge">${style}</span>
+        <span class="badge">${fileCount} files</span>
+      </div>
+    </div>
+    <div class="font-card-actions">
+      <button class="btn-icon" title="Edit" onclick="openFontPanel(${font.slot})">&#9998;</button>
+      <button class="btn-icon" title="Backup this font" onclick="event.stopPropagation();quickBackup(${font.slot})">&#128190;</button>
+      <button class="btn-icon danger" title="Delete slot" onclick="event.stopPropagation();promptDeleteSlot(${font.slot})">&#128465;</button>
+    </div>`;
+  div.onclick = (e) => { if (!e.target.closest('.btn-icon')) openFontPanel(font.slot); };
+  // Drag events
+  div.addEventListener('dragstart', e => {
+    dragSrcSlot = font.slot;
+    div.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  div.addEventListener('dragend', () => div.classList.remove('dragging'));
+  div.addEventListener('dragover', e => { e.preventDefault(); div.classList.add('drag-over'); });
+  div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+  div.addEventListener('drop', e => {
+    e.preventDefault();
+    div.classList.remove('drag-over');
+    const destSlot = font.slot;
+    if (dragSrcSlot && dragSrcSlot !== destSlot) promptSwapSlots(dragSrcSlot, destSlot);
+  });
+  return div;
+}
+
+async function quickBackup(slot) {
+  await backupToZip([slot], false);
+}
+
+function promptSwapSlots(a, b) {
+  const fa = fonts.find(f=>f.slot===a);
+  const fb = fonts.find(f=>f.slot===b);
+  showConfirm('Swap Slots',
+    `Swap "<strong>${esc(fa.name)}</strong>" (slot ${a}) with "<strong>${esc(fb.name)}</strong>" (slot ${b})?`,
+    async () => {
+      try {
+        await swapSlots(a, b);
+        await reloadSD();
+        renderFonts();
+        showToast(`Slots ${a} and ${b} swapped`, 'success');
+      } catch(e) { showToast('Swap failed: ' + e.message, 'error'); }
+    }, 'Swap');
+}
+
+function promptDeleteSlot(slot) {
+  const font = fonts.find(f=>f.slot===slot);
+  showConfirm('Delete Slot',
+    `Delete slot ${slot} "<strong>${esc(font.name)}</strong>"? This cannot be undone.`,
+    async () => {
+      try {
+        await deleteSlot(slot);
+        await reloadSD();
+        renderFonts();
+        showToast(`Slot ${slot} deleted`, 'success');
+      } catch(e) { showToast('Delete failed: ' + e.message, 'error'); }
+    }, 'Delete');
+}
+
+function promptAddSlot() {
+  const usedSlots = new Set(fonts.map(f=>f.slot));
+  let next = 1;
+  while (usedSlots.has(next)) next++;
+  showConfirm('Add Font Slot',
+    `<div class="form-group"><label class="form-label">Slot Number</label>
+     <input class="form-input" id="newSlotNum" type="number" min="1" max="99" value="${next}"></div>
+     <div class="form-group"><label class="form-label">Font Name</label>
+     <input class="form-input" id="newSlotName" placeholder="New Font" value="New Font"></div>`,
+    async () => {
+      const slotNum = parseInt(document.getElementById('newSlotNum').value);
+      const name = document.getElementById('newSlotName').value || `Font ${slotNum}`;
+      if (usedSlots.has(slotNum)) { showToast(`Slot ${slotNum} already exists`, 'error'); return; }
+      try {
+        await addEmptySlot(slotNum, name);
+        await reloadSD();
+        renderFonts();
+        showToast(`Slot ${slotNum} created`, 'success');
+      } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+    }, 'Create');
+}
+
+function toggleSort() {
+  sortByName = !sortByName;
+  document.getElementById('sortBtn').textContent = sortByName ? '⇅ Name' : '⇅ Slot #';
+  renderFonts();
+}
+
+// ─── UI: FONT EDITOR PANEL ────────────────────────────────────────────────────
+
+function openFontPanel(slot) {
+  const font = fonts.find(f=>f.slot===slot);
+  if (!font) return;
+  editingSlot = slot;
+  document.getElementById('panelTitle').textContent = `Slot ${slot} — ${esc(font.name)}`;
+  document.getElementById('panelDeleteBtn').onclick = () => { closePanel(); promptDeleteSlot(slot); };
+  const body = document.getElementById('panelBody');
+  const params = getParams(font.fc);
+  const hex = rgbToHex(font.color);
+  body.innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Font Name</label>
+      <input class="form-input" id="pFontName" value="${esc(font.name)}">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Blade Color</label>
+        <input type="color" id="pColor" value="${hex}" style="width:100%;height:38px;padding:2px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Blade Style</label>
+        <select class="form-select" id="pStyle">
+          ${BLADE_STYLES.map((s,i)=>`<option value="${i}"${params[5]===i?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Hum Effect</label>
+        <select class="form-select" id="pHumFx">
+          ${HUM_FX.map((s,i)=>`<option value="${i}"${params[0]===i?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Blaster Effect</label>
+        <select class="form-select" id="pBlasterFx">
+          ${BLASTER_FX.map((s,i)=>`<option value="${i}"${params[1]===i?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Force Effect</label>
+        <select class="form-select" id="pForceFx">
+          ${FORCE_FX.map((s,i)=>`<option value="${i}"${params[2]===i?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Flash on Clash</label>
+        <select class="form-select" id="pFocFx">
+          ${FOC_FX.map((s,i)=>`<option value="${i}"${params[4]===i?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Ignition Speed (ms)</label>
+        <input class="form-input" type="number" id="pOnSpeed" value="${params[6]||200}" min="50" max="9999">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Retraction Speed (ms)</label>
+        <input class="form-input" type="number" id="pOffSpeed" value="${(font.fc?.paramsStr||'').includes('%') ? String(params[7])+'%' : (params[7]||500)}" min="50" max="9999">
+      </div>
+    </div>
+    <div class="divider"></div>
+    <h3>Sound Files</h3>
+    <div id="pSoundCats"></div>
+  `;
+  renderSoundCats(font);
+  document.getElementById('panelOverlay').classList.add('open');
+  document.getElementById('fontPanel').classList.add('open');
+}
+
+function renderSoundCats(font) {
+  const container = document.getElementById('pSoundCats');
+  if (!container) return;
+  container.innerHTML = '';
+  for (const [key, label] of Object.entries(SOUND_CATS)) {
+    const files = font.fileMap[key] || [];
+    const sec = document.createElement('div');
+    sec.className = 'cat-section';
+    const countBadge = files.length ? `<span class="cat-count">${files.length} file${files.length!==1?'s':''}</span>` : '<span class="cat-count" style="color:var(--danger)">missing</span>';
+    sec.innerHTML = `
+      <div class="cat-header" onclick="toggleCat(this)">
+        <span class="cat-toggle">&#9654;</span>
+        <span class="cat-name">${label}</span>
+        ${countBadge}
+        <label class="btn btn-ghost btn-sm" onclick="event.stopPropagation()">
+          + Add <input type="file" accept=".wav" style="display:none" onchange="addSoundFile(event,'${font.slot}','${key}')">
+        </label>
+      </div>
+      <div class="cat-files">
+        ${files.map((f,i) => `
+          <div class="sound-file" id="sf-${font.slot}-${key}-${i}">
+            <button class="play-btn" onclick="handlePlayBtn(this,'${font.slot}','${key}',${i})" title="Play">&#9654;</button>
+            <span class="sound-name">${f.name}</span>
+            <label class="btn btn-ghost btn-sm" title="Replace">
+              Replace <input type="file" accept=".wav" style="display:none" onchange="replaceSoundFile(event,${font.slot},'${key}',${i})">
+            </label>
+            <button class="btn-icon danger btn-sm" title="Delete" onclick="deleteSoundFile(${font.slot},'${key}',${i})">&#128465;</button>
+          </div>`).join('')}
+      </div>`;
+    container.appendChild(sec);
+  }
+}
+
+function toggleCat(header) {
+  const files = header.nextElementSibling;
+  const toggle = header.querySelector('.cat-toggle');
+  files.classList.toggle('open');
+  toggle.classList.toggle('open');
+}
+
+async function handlePlayBtn(btn, slot, cat, idx) {
+  const font = fonts.find(f=>f.slot===parseInt(slot));
+  if (!font) return;
+  const file = font.fileMap[cat]?.[idx];
+  if (!file) return;
+  if (currentPlayBtn === btn) { stopAudio(); return; }
+  await playAudio(file.handle, btn);
+}
+
+async function replaceSoundFile(event, slot, cat, idx) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const font = fonts.find(f=>f.slot===parseInt(slot));
+  if (!font) return;
+  const existing = font.fileMap[cat]?.[idx];
+  if (!existing) return;
+  try {
+    const fh = await font.handle.getFileHandle(existing.name, { create: true });
+    const w = await fh.createWritable();
+    await w.write(await file.arrayBuffer());
+    await w.close();
+    existing.handle = fh;
+    showToast(`Replaced ${existing.name}`, 'success');
+  } catch(e) { showToast('Replace failed: ' + e.message, 'error'); }
+}
+
+async function addSoundFile(event, slot, cat) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const font = fonts.find(f=>f.slot===parseInt(slot));
+  if (!font) return;
+  const existing = font.fileMap[cat] || [];
+  const nextNum = existing.length > 0 ? Math.max(...existing.map(f=>f.num)) + 1 : 1;
+  const newName = `${cat} (${nextNum}).wav`;
+  try {
+    const fh = await font.handle.getFileHandle(newName, { create: true });
+    const w = await fh.createWritable();
+    await w.write(await file.arrayBuffer());
+    await w.close();
+    if (!font.fileMap[cat]) font.fileMap[cat] = [];
+    font.fileMap[cat].push({ num: nextNum, name: newName, handle: fh });
+    renderSoundCats(font);
+    showToast(`Added ${newName}`, 'success');
+  } catch(e) { showToast('Add failed: ' + e.message, 'error'); }
+}
+
+async function deleteSoundFile(slot, cat, idx) {
+  const font = fonts.find(f=>f.slot===parseInt(slot));
+  if (!font) return;
+  const file = font.fileMap[cat]?.[idx];
+  if (!file) return;
+  showConfirm('Delete File', `Delete <strong>${esc(file.name)}</strong>?`, async () => {
+    try {
+      await font.handle.removeEntry(file.name);
+      font.fileMap[cat].splice(idx, 1);
+      renderSoundCats(font);
+      showToast(`Deleted ${file.name}`, 'success');
+    } catch(e) { showToast('Delete failed: ' + e.message, 'error'); }
+  }, 'Delete');
+}
+
+async function saveFontPanel() {
+  const font = fonts.find(f=>f.slot===editingSlot);
+  if (!font) return;
+  const name = document.getElementById('pFontName').value.trim() || font.name;
+  const hex = document.getElementById('pColor').value;
+  const color = hexToRgb(hex);
+  const humFx = parseInt(document.getElementById('pHumFx').value);
+  const blasterFx = parseInt(document.getElementById('pBlasterFx').value);
+  const forceFx = parseInt(document.getElementById('pForceFx').value);
+  const focFx = parseInt(document.getElementById('pFocFx').value);
+  const style = parseInt(document.getElementById('pStyle').value);
+  const onSpeed = document.getElementById('pOnSpeed').value || '200';
+  const offSpeed = document.getElementById('pOffSpeed').value || '500';
+  const lockupFx = getParams(font.fc)[3] || 0;
+  const paramsStr = `,${humFx},${blasterFx},${forceFx},${lockupFx},${focFx},${style},${onSpeed},${offSpeed}`;
+  try {
+    await writeText(font.handle, 'fontconfig.ini', serializeFontConfig(name, color, paramsStr));
+    font.name = name;
+    font.color = color;
+    font.fc = { name, color, paramsStr };
+    closePanel();
+    renderFonts();
+    showToast('Font saved', 'success');
+  } catch(e) { showToast('Save failed: ' + e.message, 'error'); }
+}
+
+function closePanel() {
+  document.getElementById('panelOverlay').classList.remove('open');
+  document.getElementById('fontPanel').classList.remove('open');
+  editingSlot = null;
+  stopAudio();
+}
+
+// ─── UI: SYSTEM SOUNDS ────────────────────────────────────────────────────────
+
+function renderSystem() {
+  const el = document.getElementById('systemContent');
+  if (!Object.keys(systemFileMap).length) {
+    el.innerHTML = '<div class="muted" style="padding:20px">No system files found.</div>';
+    return;
+  }
+  let html = '';
+  // Numbered groups
+  const namedGroups = {
+    volume: 'Volume Levels (1–100)',
+    power: 'Power/Battery Levels (1–100)',
+    blade: 'Blade Style Announcements (1–100)',
+    lighteffect: 'Light Effect Announcements (1–100)',
+    saber: 'Saber Number Announcements'
+  };
+  for (const [key, title] of Object.entries(namedGroups)) {
+    const files = systemFileMap[key];
+    if (!files?.length) continue;
+    html += `<div class="system-section">
+      <div class="system-section-title">${title} — ${files.length} files</div>
+      <div class="system-grid">
+        ${files.map((f,i) => `
+          <div class="system-file">
+            <button class="play-btn" onclick="handleSystemPlay(this,'${key}',${i})">&#9654;</button>
+            <span class="system-file-name">${f.name}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+  // Single files
+  const singles = Object.entries(systemFileMap).filter(([k]) => !namedGroups[k]);
+  if (singles.length) {
+    html += `<div class="system-section">
+      <div class="system-section-title">System Voice Lines</div>
+      <div class="system-grid">`;
+    for (const [key, files] of singles) {
+      for (let i=0; i<files.length; i++) {
+        html += `<div class="system-file">
+          <button class="play-btn" onclick="handleSystemPlayKey(this,'${key}',${i})">&#9654;</button>
+          <span class="system-file-name">${files[i].name}</span>
+          <label class="btn btn-ghost btn-sm" title="Replace">
+            Replace <input type="file" accept=".wav" style="display:none" onchange="replaceSystemFile(event,'${key}',${i})">
+          </label>
+        </div>`;
+      }
+    }
+    html += `</div></div>`;
+  }
+  el.innerHTML = html;
+}
+
+async function handleSystemPlay(btn, cat, idx) {
+  const files = systemFileMap[cat];
+  if (!files?.[idx]) return;
+  if (currentPlayBtn === btn) { stopAudio(); return; }
+  await playAudio(files[idx].handle, btn);
+}
+const handleSystemPlayKey = handleSystemPlay;
+
+async function replaceSystemFile(event, cat, idx) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const entry = systemFileMap[cat]?.[idx];
+  if (!entry) return;
+  try {
+    const settingDir = await sdRoot.getDirectoryHandle('setting');
+    const fh = await settingDir.getFileHandle(entry.name, { create: true });
+    const w = await fh.createWritable();
+    await w.write(await file.arrayBuffer());
+    await w.close();
+    entry.handle = fh;
+    showToast(`Replaced ${entry.name}`, 'success');
+  } catch(e) { showToast('Replace failed: ' + e.message, 'error'); }
+}
+
+// ─── UI: SETTINGS ─────────────────────────────────────────────────────────────
+
+function renderSettings() {
+  if (!configRaw) {
+    document.getElementById('settingsContent').innerHTML =
+      '<div class="muted" style="padding:20px">No config.ini found in setting/ folder.</div>';
+    return;
+  }
+  const c = configParsed;
+  const num = (key, desc, min='', max='') => `
+    <div class="setting-row">
+      <div class="setting-label"><div class="setting-name">${key}</div><div class="setting-desc">${desc}</div></div>
+      <div class="setting-control"><input class="form-input" type="number" data-cfg="${key}" value="${c[key]??''}" min="${min}" max="${max}"></div>
+    </div>`;
+  const tog = (key, desc) => `
+    <div class="setting-row">
+      <div class="setting-label"><div class="setting-name">${key}</div><div class="setting-desc">${desc}</div></div>
+      <div class="setting-control">
+        <label class="toggle-wrap"><input type="checkbox" data-cfg="${key}" ${c[key]==='1'?'checked':''}> ${c[key]==='1'?'On':'Off'}</label>
+      </div>
+    </div>`;
+
+  document.getElementById('settingsContent').innerHTML = `
+    <div class="settings-section">
+      <div class="settings-section-title">Audio</div>
+      ${num('volume','Max volume (0–100, do not exceed 100)',0,100)}
+      ${num('current_volume','Current volume level',0,100)}
+      ${num('dimming','Blade brightness % (0–100)',0,100)}
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Blade</div>
+      ${num('main_blade_pixel_led_number','Main blade LED count (default 128 for 92cm)',1,500)}
+      ${num('side_blade_pixel_led_number','Side blade LED count for crossguard/double blade',1,500)}
+      ${num('side_blade_delay_time','Side blade delay time (ms)',0,5000)}
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Behavior</div>
+      ${num('clash_sensitivity','Clash sensitivity — lower = easier to trigger (default 5)',1,20)}
+      ${num('power_on_time','Power on animation time (ms)',0,10000)}
+      ${num('power_off_time','Power off animation time (ms)',0,10000)}
+      ${num('auto_power_off_time','Auto power off time (ms, default 3600000)',60000,7200000)}
+      ${tog('flash_on_clash','Flash on clash effect')}
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Motion Control</div>
+      ${tog('motion_control','Enable motion control')}
+      ${tog('twist_on','Twist-on to ignite')}
+      ${tog('twist_off','Twist-off to retract')}
+      ${num('twist_sensitivity','Twist sensitivity (default 235)',50,1000)}
+      ${tog('pull_push_on','Pull-to-ignite motion')}
+      ${tog('push_pull_off','Push-to-retract motion')}
+      ${tog('swing_on','Swing-on to ignite')}
+      ${num('accentswing_sensitivity','Accent swing sensitivity (default 30)',5,500)}
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Blade Modes</div>
+      ${tog('torch_mode','Torch mode')}
+      ${tog('velocity_mode','Velocity mode')}
+      ${tog('multiblock_mode','Multi-block mode')}
+      ${tog('multilock_mode','Multi-lock mode')}
+      ${tog('lightning_block_mode','Lightning block mode')}
+      ${tog('blaster_mode','Blaster mode')}
+      ${tog('ghost_mode','Ghost mode')}
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Pre-On Blade Timing (ms) — match to your font's preon sound length</div>
+      ${[1,2,3,4,5,6,7].map(i=>num(`blade${i}_on_time`,`Blade style ${i} pre-on time`,0,10000)).join('')}
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Hardware</div>
+      ${tog('bluetooth','Bluetooth enabled')}
+      ${num('button_number','Number of buttons (1 or 2)',1,2)}
+      ${num('motor_speed','Rotating crystal chamber motor speed (0–100)',0,100)}
+    </div>`;
+
+  // Fix toggle labels on change
+  document.querySelectorAll('[data-cfg] input[type=checkbox]').forEach(cb => {
+    cb.onchange = () => cb.nextSibling.textContent = ' ' + (cb.checked ? 'On' : 'Off');
+  });
+}
+
+// ─── UI: BACKUP ───────────────────────────────────────────────────────────────
+
+function renderBackup() {
+  const fontCheckboxes = fonts.map(f => `
+    <label class="backup-font-item">
+      <input type="checkbox" class="backup-font-cb" value="${f.slot}" checked>
+      <span class="backup-font-label">${esc(f.name)}</span>
+      <span class="backup-font-slot">Slot ${f.slot}</span>
+    </label>`).join('');
+
+  document.getElementById('backupContent').innerHTML = `
+    <div style="margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="selectAllFonts" checked onchange="toggleAllFonts(this)">
+        Select all fonts
+      </label>
+    </div>
+    <div class="backup-font-list" style="margin-bottom:20px;max-height:180px;overflow-y:auto">${fontCheckboxes}</div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:20px">
+      <input type="checkbox" id="backupSettings"> Include system sounds &amp; saber settings
+    </label>
+    <div class="backup-grid">
+      <div class="backup-card">
+        <div class="backup-card-title">&#11015; Download ZIP</div>
+        <div class="backup-card-desc">Download the selected fonts as a ZIP file to your computer. Good for quick local backups.</div>
+        <button class="btn btn-primary" onclick="doBackupZip()">Download Backup ZIP</button>
+      </div>
+      <div class="backup-card">
+        <div class="backup-card-title">&#128194; Copy to Folder</div>
+        <div class="backup-card-desc">Copy selected fonts to any folder — an external drive, NAS, or your Google Drive / Dropbox sync folder for cloud backup.</div>
+        <button class="btn btn-secondary" onclick="doBackupFolder()">Choose Destination Folder</button>
+      </div>
+      <div class="backup-card">
+        <div class="backup-card-title">&#8635; Restore from ZIP</div>
+        <div class="backup-card-desc">Restore fonts from a previously created backup ZIP. Existing slots will be overwritten.</div>
+        <label class="btn btn-secondary">
+          Choose Backup ZIP
+          <input type="file" accept=".zip" style="display:none" onchange="doRestore(event)">
+        </label>
+      </div>
+    </div>`;
+}
+
+function toggleAllFonts(cb) {
+  document.querySelectorAll('.backup-font-cb').forEach(c => c.checked = cb.checked);
+}
+
+function getSelectedSlots() {
+  return [...document.querySelectorAll('.backup-font-cb:checked')].map(c => parseInt(c.value));
+}
+
+async function doBackupZip() {
+  const slots = getSelectedSlots();
+  if (!slots.length) { showToast('No fonts selected', 'error'); return; }
+  const inc = document.getElementById('backupSettings')?.checked;
+  await backupToZip(slots, inc);
+}
+
+async function doBackupFolder() {
+  const slots = getSelectedSlots();
+  if (!slots.length) { showToast('No fonts selected', 'error'); return; }
+  const inc = document.getElementById('backupSettings')?.checked;
+  await backupToFolder(slots, inc);
+}
+
+async function doRestore(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  showConfirm('Restore from ZIP',
+    `This will overwrite matching slots on the SD card with contents from <strong>${esc(file.name)}</strong>. Continue?`,
+    () => restoreFromZip(file), 'Restore');
+}
+
+// ─── UI: IMPORT ───────────────────────────────────────────────────────────────
+
+function renderImport() {
+  document.getElementById('importContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+      <div class="backup-card">
+        <div class="backup-card-title">&#128194; Import from ZIP</div>
+        <div class="backup-card-desc">Install a font pack from a ZIP file. Works with Xenopixel-formatted ZIP files from FreePadawan and similar sites.</div>
+        <label class="btn btn-primary">
+          Choose ZIP File
+          <input type="file" accept=".zip" style="display:none" onchange="startZipImport(event)">
+        </label>
+      </div>
+      <div class="backup-card">
+        <div class="backup-card-title">&#128193; Import from Folder</div>
+        <div class="backup-card-desc">Install a font from a folder on your computer — useful if you've already extracted a ZIP or have fonts stored as folders.</div>
+        <button class="btn btn-secondary" onclick="startFolderImport()">Choose Font Folder</button>
+      </div>
+    </div>
+    <h3>Free Font Resources</h3>
+    <p class="muted" style="margin-bottom:12px">Download Xenopixel v3 compatible font packs from these sources, then use Import from ZIP above.</p>
+    <div class="resource-grid">
+      <a class="resource-link" href="https://www.freepadawan.com" target="_blank" rel="noopener">
+        <div class="resource-link-title">FreePadawan.com</div>
+        <div class="resource-link-desc">Large collection of free Xenopixel-compatible font packs. Most popular free source.</div>
+      </a>
+      <a class="resource-link" href="https://www.reddit.com/r/lightsabers/wiki/soundfonts" target="_blank" rel="noopener">
+        <div class="resource-link-title">r/lightsabers Wiki</div>
+        <div class="resource-link-desc">Community-maintained list of free and paid sound font sources.</div>
+      </a>
+      <a class="resource-link" href="https://www.etsy.com/search?q=xenopixel+sound+font" target="_blank" rel="noopener">
+        <div class="resource-link-title">Etsy — Xenopixel Fonts</div>
+        <div class="resource-link-desc">Many independent creators sell high-quality Xenopixel font packs.</div>
+      </a>
+      <a class="resource-link" href="https://kyberphonic.com" target="_blank" rel="noopener">
+        <div class="resource-link-title">KyberPhonic</div>
+        <div class="resource-link-desc">Premium custom sound fonts, some free samples available.</div>
+      </a>
+    </div>`;
+}
+
+let pendingImportFile = null;
+let pendingImportFolder = null;
+
+function startZipImport(event) {
+  pendingImportFile = event.target.files[0];
+  pendingImportFolder = null;
+  if (!pendingImportFile) return;
+  openImportModal(pendingImportFile.name.replace(/\.zip$/i,''));
+}
+
+async function startFolderImport() {
+  try {
+    pendingImportFolder = await window.showDirectoryPicker();
+    pendingImportFile = null;
+    openImportModal(pendingImportFolder.name);
+  } catch(e) { if(e.name!=='AbortError') showToast('Cancelled','info'); }
+}
+
+function openImportModal(suggestedName) {
+  document.getElementById('importFontName').value = suggestedName || '';
+  const sel = document.getElementById('importTargetSlot');
+  const usedSlots = new Set(fonts.map(f=>f.slot));
+  let next = 1; while(usedSlots.has(next)) next++;
+  sel.innerHTML = `<option value="${next}">Slot ${next} (new)</option>` +
+    fonts.map(f=>`<option value="${f.slot}">Slot ${f.slot} — ${esc(f.name)}</option>`).join('') +
+    `<option value="${next}">Slot ${next} (new)</option>`;
+  sel.onchange = () => {
+    const v = parseInt(sel.value);
+    document.getElementById('importSlotWarning').style.display = usedSlots.has(v) ? '' : 'none';
+  };
+  document.getElementById('importConfirmBtn').onclick = async () => {
+    const name = document.getElementById('importFontName').value.trim();
+    const slot = parseInt(document.getElementById('importTargetSlot').value);
+    document.getElementById('importModal').classList.remove('open');
+    if (pendingImportFile) await importFontFromZip(pendingImportFile, slot, name);
+    else if (pendingImportFolder) await importFontFromFolder(pendingImportFolder, slot, name);
+  };
+  document.getElementById('importModal').classList.add('open');
+}
+
+// ─── UI: HELPERS ──────────────────────────────────────────────────────────────
+
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.view === name);
+  });
+  if (name === 'fonts') renderFonts();
+  else if (name === 'system') renderSystem();
+  else if (name === 'settings') renderSettings();
+  else if (name === 'backup') renderBackup();
+  else if (name === 'import') renderImport();
+}
+
+function renderCurrentView() {
+  const active = document.querySelector('.nav-tab.active');
+  if (active) showView(active.dataset.view);
+}
+
+function showToast(msg, type='info') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.getElementById('toastContainer').appendChild(t);
+  requestAnimationFrame(() => { requestAnimationFrame(() => t.classList.add('show')); });
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => t.remove(), 300);
+  }, 3000);
+}
+
+let confirmCallback = null;
+function showConfirm(title, body, onConfirm, confirmLabel='Confirm') {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmBody').innerHTML = body;
+  document.getElementById('confirmOkBtn').textContent = confirmLabel;
+  document.getElementById('confirmOkBtn').onclick = () => { closeConfirm(); onConfirm(); };
+  document.getElementById('confirmModal').classList.add('open');
+}
+function closeConfirm() { document.getElementById('confirmModal').classList.remove('open'); }
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+
+function init() {
+  if (!window.showDirectoryPicker) {
+    document.querySelector('.landing p').textContent =
+      'This app requires Chrome or Edge — File System Access API is not supported in this browser.';
+    document.querySelector('.landing button').disabled = true;
+    return;
+  }
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.onclick = () => showView(tab.dataset.view);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closePanel(); closeConfirm(); }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
