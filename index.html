@@ -4,162 +4,185 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Xenopixel v3 Font Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0f172a;--surface:#1e293b;--surface2:#2d3f55;--surface3:#334155;
-  --accent:#3b82f6;--accent-h:#2563eb;--text:#f1f5f9;--text-dim:#94a3b8;
-  --text-muted:#64748b;--danger:#ef4444;--danger-h:#dc2626;
-  --success:#22c55e;--warning:#f59e0b;--border:#334155;
-  --radius:10px;--radius-sm:6px;
+  --bg:#08090d;--surface:#0f1117;--surface2:#141720;--surface3:#1c2030;
+  --ui:#3a72e8;--ui-h:#2d5fc2;--text:#e8eaf0;--text-dim:#8891aa;
+  --text-muted:#4a5270;--danger:#e84848;--danger-h:#c83030;
+  --success:#22c55e;--warning:#f59e0b;--border:#1a1e2c;
+  --radius:10px;--radius-sm:6px;--blade-rgb:58,114,232;
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
-.app-title{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px;white-space:nowrap}
-.app-title span{color:var(--accent)}
-.sd-path{font-size:12px;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 20px;gap:4px}
-.nav-tab{padding:10px 16px;font-size:14px;font-weight:500;color:var(--text-dim);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
-.nav-tab:hover{color:var(--text)}.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-main{flex:1;padding:20px;overflow-y:auto}
+body{font-family:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+header{background:rgba(8,9,13,.96);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.app-title{font-family:'Barlow Semi Condensed',sans-serif;font-size:21px;font-weight:700;letter-spacing:.03em;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.app-title .version{color:var(--ui)}
+.sd-path{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+nav{background:var(--bg);border-bottom:1px solid var(--border);display:flex;padding:0 24px;gap:2px}
+.nav-tab{padding:11px 18px;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;letter-spacing:.01em}
+.nav-tab:hover{color:var(--text-dim)}.nav-tab.active{color:var(--ui);border-bottom-color:var(--ui)}
+main{flex:1;padding:24px;overflow-y:auto;max-width:1400px;margin:0 auto;width:100%}
 .view{display:none}.view.active{display:block}
-.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
-.section-title{font-size:16px;font-weight:600}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px}
+.section-title{font-family:'Barlow Semi Condensed',sans-serif;font-size:22px;font-weight:600;letter-spacing:.02em}
 /* Landing */
-.landing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;gap:16px}
-.landing-icon{font-size:64px}.landing h2{font-size:28px}
-.landing p{color:var(--text-dim);max-width:480px;line-height:1.6}
+.landing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:65vh;text-align:center;gap:18px;position:relative}
+.landing-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:600px;height:400px;background:radial-gradient(ellipse at center,rgba(58,114,232,.06) 0%,transparent 70%);pointer-events:none}
+.landing-icon{font-size:56px;filter:drop-shadow(0 0 20px rgba(58,114,232,.4))}
+.landing h2{font-family:'Barlow Semi Condensed',sans-serif;font-size:36px;font-weight:700;letter-spacing:.02em}
+.landing p{color:var(--text-dim);max-width:420px;line-height:1.6;font-size:15px}
 /* Font Grid */
-.font-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-.font-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:border-color .15s,transform .1s;position:relative;user-select:none}
-.font-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.font-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.font-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:border-color .2s,transform .15s,box-shadow .2s;position:relative;user-select:none}
+.font-card:hover{border-color:rgba(var(--blade-rgb),.4);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4),0 0 0 1px rgba(var(--blade-rgb),.1)}
 .font-card.drag-over{border-color:var(--warning);background:var(--surface2)}
-.font-card.dragging{opacity:.5}
-.font-card-bar{height:6px}
-.font-card-body{padding:12px 14px}
-.font-card-slot{font-size:11px;color:var(--text-muted);margin-bottom:2px}
-.font-card-name{font-size:15px;font-weight:600;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.font-card-meta{display:flex;gap:6px;flex-wrap:wrap}
-.badge{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface3);color:var(--text-dim)}
-.font-card-actions{display:flex;gap:4px;padding:8px 14px;border-top:1px solid var(--border);opacity:0;transition:opacity .15s}
+.font-card.dragging{opacity:.45}
+.font-card-glow{position:absolute;top:0;left:0;right:0;height:100px;background:radial-gradient(ellipse at 50% 0%,rgba(var(--blade-rgb),.18) 0%,transparent 70%);pointer-events:none;z-index:0}
+.font-card-watermark{position:absolute;bottom:2px;right:8px;font-family:'Bebas Neue',cursive;font-size:86px;line-height:1;color:rgba(var(--blade-rgb),.07);pointer-events:none;user-select:none;z-index:0}
+.font-card-bar{height:3px;position:relative;z-index:1}
+.font-card-body{padding:14px 16px 10px;position:relative;z-index:1}
+.font-card-slot{font-size:10px;color:var(--text-muted);margin-bottom:3px;font-weight:500;letter-spacing:.06em;text-transform:uppercase}
+.font-card-name{font-family:'Barlow Semi Condensed',sans-serif;font-size:19px;font-weight:600;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.02em}
+.font-card-meta{display:flex;gap:5px;flex-wrap:wrap}
+.badge{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--surface2);color:var(--text-dim);font-weight:500;letter-spacing:.02em}
+.font-card-actions{display:flex;gap:4px;padding:8px 16px;border-top:1px solid var(--border);opacity:0;transition:opacity .15s;position:relative;z-index:1}
 .font-card:hover .font-card-actions{opacity:1}
-.add-slot-card{background:var(--surface);border:2px dashed var(--border);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;min-height:108px;cursor:pointer;color:var(--text-muted);font-size:14px;gap:8px;transition:border-color .15s,color .15s}
-.add-slot-card:hover{border-color:var(--accent);color:var(--accent)}
+.add-slot-card{background:var(--surface);border:2px dashed var(--border);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;min-height:120px;cursor:pointer;color:var(--text-muted);font-size:14px;gap:8px;transition:border-color .15s,color .15s}
+.add-slot-card:hover{border-color:var(--ui);color:var(--ui)}
 /* Buttons */
-.btn{padding:8px 16px;border-radius:var(--radius-sm);border:none;font-size:14px;font-weight:500;cursor:pointer;transition:background .15s,opacity .15s;display:inline-flex;align-items:center;gap:6px}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover:not(:disabled){background:var(--accent-h)}
-.btn-secondary{background:var(--surface3);color:var(--text)}.btn-secondary:hover:not(:disabled){background:var(--surface2)}
+.btn{padding:8px 16px;border-radius:var(--radius-sm);border:none;font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s,opacity .15s;display:inline-flex;align-items:center;gap:6px;letter-spacing:.01em}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--ui);color:#fff}.btn-primary:hover:not(:disabled){background:var(--ui-h)}
+.btn-secondary{background:var(--surface3);color:var(--text)}.btn-secondary:hover:not(:disabled){background:#222840}
 .btn-danger{background:var(--danger);color:#fff}.btn-danger:hover:not(:disabled){background:var(--danger-h)}
 .btn-ghost{background:transparent;color:var(--text-dim);padding:4px 8px;font-size:12px}.btn-ghost:hover{background:var(--surface2);color:var(--text)}
-.btn-sm{padding:4px 10px;font-size:12px}
-.btn-icon{padding:6px;border-radius:var(--radius-sm);background:var(--surface2);border:none;cursor:pointer;color:var(--text-dim);font-size:14px;transition:background .15s,color .15s;display:inline-flex;align-items:center}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-icon{padding:6px;border-radius:var(--radius-sm);background:var(--surface2);border:none;cursor:pointer;color:var(--text-muted);font-size:14px;transition:background .15s,color .15s;display:inline-flex;align-items:center}
 .btn-icon:hover{background:var(--surface3);color:var(--text)}
-.btn-icon.danger:hover{background:#7f1d1d;color:var(--danger)}
+.btn-icon.danger:hover{background:rgba(232,72,72,.15);color:var(--danger)}
 /* Panel */
-.panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none}
+.panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none}
 .panel-overlay.open{display:block}
-.panel{position:fixed;right:0;top:0;bottom:0;width:min(660px,100vw);background:var(--surface);border-left:1px solid var(--border);z-index:201;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease;overflow:hidden}
+.panel{position:fixed;right:0;top:0;bottom:0;width:min(680px,100vw);background:var(--surface);border-left:1px solid var(--border);z-index:201;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease;overflow:hidden}
 .panel.open{transform:translateX(0)}
-.panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
-.panel-title{font-size:16px;font-weight:600;flex:1}
-.panel-body{flex:1;overflow-y:auto;padding:20px}
-.panel-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+.panel-header{padding:18px 22px;border-bottom:1px solid rgba(var(--blade-rgb),.2);display:flex;align-items:center;gap:12px;flex-shrink:0;background:linear-gradient(to bottom,rgba(var(--blade-rgb),.1) 0%,transparent 100%);transition:background .3s,border-color .3s}
+.panel-title{font-family:'Barlow Semi Condensed',sans-serif;font-size:20px;font-weight:600;flex:1;letter-spacing:.02em}
+.panel-body{flex:1;overflow-y:auto;padding:22px}
+.panel-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;background:var(--surface)}
 /* Forms */
 .form-group{margin-bottom:16px}
-.form-label{display:block;font-size:13px;font-weight:500;color:var(--text-dim);margin-bottom:6px}
-.form-input{width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;transition:border-color .15s}
-.form-input:focus{border-color:var(--accent)}
-.form-select{width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;cursor:pointer}
+.form-label{display:block;font-size:11px;font-weight:500;color:var(--text-muted);margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase}
+.form-input{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:14px;outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--ui)}
+.form-select{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:14px;outline:none;cursor:pointer}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .color-row{display:flex;gap:8px;align-items:flex-end}
 .color-row .form-group{flex:1;margin-bottom:0}
-input[type=color]{width:100%;height:38px;padding:2px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer}
+input[type=color]{width:100%;height:40px;padding:2px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer}
 /* Sound Categories */
-.cat-section{margin-bottom:6px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.cat-section{margin-bottom:5px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
 .cat-header{padding:10px 14px;background:var(--surface2);display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
 .cat-header:hover{background:var(--surface3)}
-.cat-name{font-size:13px;font-weight:600;flex:1}
+.cat-name{font-size:13px;font-weight:500;flex:1}
 .cat-count{font-size:11px;color:var(--text-muted)}
 .cat-toggle{color:var(--text-muted);font-size:11px;transition:transform .15s}
 .cat-toggle.open{transform:rotate(90deg)}
 .cat-files{display:none}.cat-files.open{display:block}
 .sound-file{padding:8px 14px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border)}
 .sound-file:hover{background:var(--bg)}
-.sound-name{font-size:13px;flex:1;color:var(--text-dim)}
-.play-btn{background:none;border:none;cursor:pointer;color:var(--accent);font-size:16px;padding:2px 4px;transition:color .1s;line-height:1}
-.play-btn:hover{color:#60a5fa}.play-btn.playing{color:var(--warning)}
+.sound-name{font-family:'IBM Plex Mono',monospace;font-size:12px;flex:1;color:var(--text-dim)}
+.play-btn{background:none;border:none;cursor:pointer;color:var(--ui);font-size:16px;padding:2px 4px;transition:color .1s;line-height:1}
+.play-btn:hover{color:#6b9ff0}.play-btn.playing{color:var(--warning)}
 /* System */
-.system-section{margin-bottom:24px}
-.system-section-title{font-size:14px;font-weight:600;color:var(--text-dim);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.system-section{margin-bottom:28px}
+.system-section-title{font-family:'Barlow Semi Condensed',sans-serif;font-size:16px;font-weight:600;color:var(--text-dim);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);letter-spacing:.02em}
 .system-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:6px}
 .system-file{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;gap:8px}
-.system-file-name{font-size:12px;flex:1;color:var(--text-dim)}
+.system-file-name{font-family:'IBM Plex Mono',monospace;font-size:12px;flex:1;color:var(--text-dim)}
 /* Settings */
-.settings-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
-.settings-section-title{font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.settings-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px}
+.settings-section-title{font-family:'Barlow Semi Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:.02em;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
 .setting-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:16px}
 .setting-row:last-child{border-bottom:none}
 .setting-label{flex:1}
 .setting-name{font-size:13px;font-weight:500}
-.setting-desc{font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.4}
-.setting-control{min-width:160px}
+.setting-desc{font-size:11px;color:var(--text-dim);margin-top:4px;line-height:1.5}
+.setting-control{min-width:180px}
 .setting-control .form-input{width:100%}
 .toggle-wrap{display:flex;align-items:center;gap:8px}
+.toggle-text{font-size:12px;color:var(--text-dim);min-width:26px}
+/* Slider */
+.setting-slider-wrap{display:flex;flex-direction:column;gap:5px}
+.form-range{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;outline:none;cursor:pointer;background:linear-gradient(to right,var(--ui) var(--val,0%),var(--surface3) var(--val,0%))}
+.form-range::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--ui);cursor:pointer;border:2px solid var(--surface);box-shadow:0 0 0 3px rgba(58,114,232,.2)}
+.form-range::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--ui);cursor:pointer;border:2px solid var(--surface)}
+.form-range::-moz-range-progress{background:var(--ui);border-radius:2px;height:4px}
+.form-range::-moz-range-track{background:var(--surface3);border-radius:2px;height:4px}
+.range-val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ui);text-align:right}
 /* Backup */
 .backup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
-.backup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
-.backup-card-title{font-size:15px;font-weight:600;margin-bottom:6px}
+.backup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px}
+.backup-card-title{font-family:'Barlow Semi Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:.02em;margin-bottom:8px}
 .backup-card-desc{font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.5}
 .backup-font-list{display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto;margin-bottom:12px}
-.backup-font-item{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg);border-radius:var(--radius-sm);cursor:pointer}
+.backup-font-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg);border-radius:var(--radius-sm);cursor:pointer}
 .backup-font-item:hover{background:var(--surface2)}
-.backup-font-item input[type=checkbox]{accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+.backup-font-item input[type=checkbox]{accent-color:var(--ui);cursor:pointer;flex-shrink:0}
 .backup-font-label{font-size:13px;flex:1}
 .backup-font-slot{font-size:11px;color:var(--text-muted);margin-left:auto}
 /* Import */
 .import-dropzone{border:2px dashed var(--border);border-radius:var(--radius);padding:40px;text-align:center;color:var(--text-dim);cursor:pointer;transition:border-color .15s,background .15s;margin-bottom:16px}
-.import-dropzone:hover,.import-dropzone.drag-active{border-color:var(--accent);background:rgba(59,130,246,.05);color:var(--text)}
+.import-dropzone:hover,.import-dropzone.drag-active{border-color:var(--ui);background:rgba(58,114,232,.04);color:var(--text)}
 .import-dropzone-icon{font-size:40px;margin-bottom:8px}
 .resource-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
-.resource-link{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;text-decoration:none;color:var(--text);transition:border-color .15s;display:block}
-.resource-link:hover{border-color:var(--accent)}
-.resource-link-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.resource-link{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;text-decoration:none;color:var(--text);transition:border-color .15s;display:block}
+.resource-link:hover{border-color:var(--ui)}
+.resource-link-title{font-family:'Barlow Semi Condensed',sans-serif;font-size:15px;font-weight:600;letter-spacing:.02em;margin-bottom:5px}
 .resource-link-desc{font-size:12px;color:var(--text-dim);line-height:1.4}
 /* Modal */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:none;align-items:center;justify-content:center}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;display:none;align-items:center;justify-content:center}
 .modal-overlay.open{display:flex}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:min(420px,90vw);max-height:80vh;overflow-y:auto}
-.modal-title{font-size:16px;font-weight:600;margin-bottom:10px}
-.modal-body{font-size:14px;color:var(--text-dim);margin-bottom:20px;line-height:1.5}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:26px;width:min(440px,90vw);max-height:80vh;overflow-y:auto}
+.modal-title{font-family:'Barlow Semi Condensed',sans-serif;font-size:20px;font-weight:600;letter-spacing:.02em;margin-bottom:12px}
+.modal-body{font-size:14px;color:var(--text-dim);margin-bottom:20px;line-height:1.6}
 .modal-footer{display:flex;gap:8px;justify-content:flex-end}
 /* Toast */
-.toast-container{position:fixed;bottom:20px;right:20px;z-index:400;display:flex;flex-direction:column;gap:8px;pointer-events:none}
-.toast{padding:12px 16px;border-radius:var(--radius-sm);font-size:14px;color:#fff;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;max-width:320px}
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:400;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{padding:12px 18px;border-radius:var(--radius-sm);font-size:14px;color:#fff;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;max-width:340px;font-family:'IBM Plex Sans',sans-serif}
 .toast.show{opacity:1;transform:translateY(0)}
-.toast.success{background:#166534;border:1px solid #22c55e}
-.toast.error{background:#7f1d1d;border:1px solid #ef4444}
-.toast.info{background:#1e3a5f;border:1px solid #3b82f6}
+.toast.success{background:#0f2b1a;border:1px solid #22c55e}
+.toast.error{background:#2b0f0f;border:1px solid #e84848}
+.toast.info{background:#0f1b3a;border:1px solid #3a72e8}
 /* Misc */
 .divider{height:1px;background:var(--border);margin:20px 0}
 .muted{color:var(--text-muted);font-size:13px}
-.loading{display:flex;align-items:center;justify-content:center;padding:40px;gap:12px;color:var(--text-dim)}
-.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+.loading{display:flex;align-items:center;justify-content:center;padding:48px;gap:12px;color:var(--text-dim)}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--ui);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--surface3)}
 .progress-wrap{background:var(--surface3);border-radius:3px;height:6px;overflow:hidden;margin-top:8px}
-.progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .2s}
-h3{font-size:14px;font-weight:600;color:var(--text-dim);margin:16px 0 10px}
+.progress-fill{height:100%;background:var(--ui);border-radius:3px;transition:width .2s}
+h3{font-family:'Barlow Semi Condensed',sans-serif;font-size:15px;font-weight:600;letter-spacing:.02em;color:var(--text-dim);margin:18px 0 12px}
+.icon{display:inline-flex;align-items:center;vertical-align:middle}
+.icon svg{display:block}
+.nav-tab .icon{margin-right:3px}
+.nav-tab .icon svg{width:15px;height:15px}
+.app-title .icon{margin-right:2px}
+.app-title .icon svg{width:19px;height:19px}
+.system-section-title{display:flex!important;align-items:center;justify-content:space-between}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="app-title">&#9889; Xenopixel <span>v3</span> Font Manager</div>
+  <div class="app-title"><span class="icon" data-icon="saber"></span> Xenopixel <span class="version">v3</span> Font Manager</div>
   <div class="sd-path" id="sdPath">No SD card loaded</div>
   <div style="display:flex;gap:8px;margin-left:auto">
     <button class="btn btn-secondary btn-sm" id="reloadBtn" style="display:none" onclick="reloadSD()">&#8635; Reload</button>
@@ -168,20 +191,21 @@ h3{font-size:14px;font-weight:600;color:var(--text-dim);margin:16px 0 10px}
 </header>
 
 <nav id="mainNav" style="display:none">
-  <button class="nav-tab active" data-view="fonts">&#127926; Fonts</button>
-  <button class="nav-tab" data-view="system">&#9881; System Sounds</button>
-  <button class="nav-tab" data-view="settings">&#128295; Saber Settings</button>
-  <button class="nav-tab" data-view="backup">&#128190; Backup</button>
-  <button class="nav-tab" data-view="import">&#11015; Import</button>
+  <button class="nav-tab active" data-view="fonts"><span class="icon" data-icon="fonts"></span> Fonts</button>
+  <button class="nav-tab" data-view="system"><span class="icon" data-icon="sounds"></span> System Sounds</button>
+  <button class="nav-tab" data-view="settings"><span class="icon" data-icon="settings"></span> Saber Settings</button>
+  <button class="nav-tab" data-view="backup"><span class="icon" data-icon="backup"></span> Backup</button>
+  <button class="nav-tab" data-view="import"><span class="icon" data-icon="import"></span> Import</button>
 </nav>
 
 <main>
   <div class="view active" id="view-landing">
     <div class="landing">
-      <div class="landing-icon">&#9889;</div>
+      <div class="landing-glow"></div>
+      <div class="landing-icon"><span class="icon" data-icon="saberHero"></span></div>
       <h2>Xenopixel v3 Font Manager</h2>
       <p>Plug your saber's SD card into your computer, then click "Open SD Card" to manage your fonts. Requires Chrome or Edge.</p>
-      <button class="btn btn-primary" onclick="openSD()" style="margin-top:8px;font-size:15px;padding:12px 24px">&#128190; Open SD Card</button>
+      <button class="btn btn-primary" onclick="openSD()" style="margin-top:8px;font-size:15px;padding:13px 28px">&#128190; Open SD Card</button>
     </div>
   </div>
 
@@ -300,6 +324,16 @@ const FOC_FX = ['Effect 1','Effect 2','Effect 3'];
 const BLADE_STYLES = ['Standard','Velocity','Torch','Blaster Mode','Ghost Mode',
   'Special Preon 1','Special Preon 2','Special Preon 3','Special Preon 4',
   'Special Preon 5','Special Preon 6','Special Preon 7'];
+
+const ICONS = {
+  saber: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="7.5" y="1" width="3" height="11" rx="1.5" fill="currentColor"/><rect x="5.5" y="11.5" width="7" height="2" rx="1" fill="currentColor"/><rect x="6.5" y="13.5" width="5" height="4" rx="1.5" fill="currentColor"/><rect x="8" y="15.5" width="1.5" height="1.5" rx="0.5" fill="#08090d" opacity="0.5"/></svg>`,
+  saberHero: `<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 48 48" fill="none"><rect x="21" y="1" width="6" height="28" rx="3" fill="rgba(58,114,232,0.12)"/><rect x="22" y="2" width="4" height="26" rx="2" fill="rgb(58,114,232)"/><rect x="17" y="28" width="14" height="2.5" rx="1.25" fill="currentColor"/><rect x="19" y="30.5" width="10" height="13.5" rx="2.5" fill="currentColor"/><rect x="21" y="35" width="6" height="1.5" rx="0.75" fill="#08090d" opacity="0.28"/><rect x="21.5" y="33.5" width="2.5" height="3" rx="1" fill="#08090d" opacity="0.45"/><rect x="20.5" y="44" width="7" height="3" rx="1.5" fill="currentColor" opacity="0.75"/></svg>`,
+  fonts: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="3.5" rx="1" fill="currentColor" opacity="0.35"/><rect x="1" y="6.5" width="14" height="3.5" rx="1" fill="currentColor" opacity="0.65"/><rect x="1" y="11" width="14" height="3.5" rx="1" fill="currentColor"/></svg>`,
+  sounds: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="0.5" y="7" width="2" height="2.5" rx="1" fill="currentColor" opacity="0.4"/><rect x="3.5" y="4" width="2.5" height="8.5" rx="1.25" fill="currentColor" opacity="0.65"/><rect x="6.5" y="1" width="3" height="14" rx="1.5" fill="currentColor"/><rect x="10" y="4" width="2.5" height="8.5" rx="1.25" fill="currentColor" opacity="0.65"/><rect x="13.5" y="7" width="2" height="2.5" rx="1" fill="currentColor" opacity="0.4"/></svg>`,
+  settings: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><rect x="7.25" y="1" width="1.5" height="2.25" rx="0.75" fill="currentColor"/><rect x="7.25" y="12.75" width="1.5" height="2.25" rx="0.75" fill="currentColor"/><rect x="1" y="7.25" width="2.25" height="1.5" rx="0.75" fill="currentColor"/><rect x="12.75" y="7.25" width="2.25" height="1.5" rx="0.75" fill="currentColor"/></svg>`,
+  backup: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5L13.5 4.75V11.25L8 14.5L2.5 11.25V4.75Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/><line x1="8" y1="1.5" x2="8" y2="8" stroke="currentColor" stroke-width="0.8" opacity="0.5"/><line x1="2.5" y1="4.75" x2="8" y2="8" stroke="currentColor" stroke-width="0.8" opacity="0.5"/><line x1="13.5" y1="4.75" x2="8" y2="8" stroke="currentColor" stroke-width="0.8" opacity="0.5"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/></svg>`,
+  import: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><line x1="8" y1="1.5" x2="8" y2="9.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 7.5L8 11.5L12 7.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/><line x1="3" y1="14" x2="13" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
+};
 
 const SYSTEM_SINGLES = [
   'appconnected','appdisconnected','batterylevel','beginningupdate','charging',
@@ -777,42 +811,93 @@ function makeFontCard(font) {
   div.className = 'font-card';
   div.draggable = true;
   div.dataset.slot = font.slot;
+  const { r, g, b } = font.color;
+  div.style.setProperty('--blade-rgb', `${r},${g},${b}`);
   const hex = rgbToHex(font.color);
   const fileCount = Object.values(font.fileMap).reduce((s,a) => s+a.length, 0);
   const params = getParams(font.fc);
   const humFx = HUM_FX[params[0]] || 'Unknown';
-  const style = BLADE_STYLES[params[5]] || 'Standard';
-  div.innerHTML = `
-    <div class="font-card-bar" style="background:${hex}"></div>
-    <div class="font-card-body">
-      <div class="font-card-slot">Slot ${font.slot}</div>
-      <div class="font-card-name">${esc(font.name)}</div>
-      <div class="font-card-meta">
-        <span class="badge" style="background:${hex}20;color:${hex}">${humFx}</span>
-        <span class="badge">${style}</span>
-        <span class="badge">${fileCount} files</span>
-      </div>
-    </div>
-    <div class="font-card-actions">
-      <button class="btn-icon" title="Edit" onclick="openFontPanel(${font.slot})">&#9998;</button>
-      <button class="btn-icon" title="Backup this font" onclick="event.stopPropagation();quickBackup(${font.slot})">&#128190;</button>
-      <button class="btn-icon danger" title="Delete slot" onclick="event.stopPropagation();promptDeleteSlot(${font.slot})">&#128465;</button>
-    </div>`;
-  div.onclick = (e) => { if (!e.target.closest('.btn-icon')) openFontPanel(font.slot); };
-  // Drag events
-  div.addEventListener('dragstart', e => {
-    dragSrcSlot = font.slot;
-    div.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-  });
+  const bladeStyle = BLADE_STYLES[params[5]] || 'Standard';
+
+  const glow = document.createElement('div');
+  glow.className = 'font-card-glow';
+
+  const watermark = document.createElement('div');
+  watermark.className = 'font-card-watermark';
+  watermark.textContent = String(font.slot).padStart(2, '0');
+
+  const bar = document.createElement('div');
+  bar.className = 'font-card-bar';
+  bar.style.background = hex;
+
+  const body = document.createElement('div');
+  body.className = 'font-card-body';
+
+  const slotEl = document.createElement('div');
+  slotEl.className = 'font-card-slot';
+  slotEl.textContent = `Slot ${font.slot}`;
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'font-card-name';
+  nameEl.textContent = font.name;
+
+  const meta = document.createElement('div');
+  meta.className = 'font-card-meta';
+
+  const humBadge = document.createElement('span');
+  humBadge.className = 'badge';
+  humBadge.style.cssText = `background:rgba(${r},${g},${b},.15);color:rgb(${r},${g},${b})`;
+  humBadge.textContent = humFx;
+
+  const styleBadge = document.createElement('span');
+  styleBadge.className = 'badge';
+  styleBadge.textContent = bladeStyle;
+
+  const filesBadge = document.createElement('span');
+  filesBadge.className = 'badge';
+  filesBadge.textContent = `${fileCount} files`;
+
+  meta.appendChild(humBadge);
+  meta.appendChild(styleBadge);
+  meta.appendChild(filesBadge);
+  body.appendChild(slotEl);
+  body.appendChild(nameEl);
+  body.appendChild(meta);
+
+  const actions = document.createElement('div');
+  actions.className = 'font-card-actions';
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'btn-icon'; editBtn.title = 'Edit'; editBtn.innerHTML = '&#9998;';
+  editBtn.addEventListener('click', e => { e.stopPropagation(); openFontPanel(font.slot); });
+
+  const backupBtn = document.createElement('button');
+  backupBtn.className = 'btn-icon'; backupBtn.title = 'Backup this font'; backupBtn.innerHTML = '&#128190;';
+  backupBtn.addEventListener('click', e => { e.stopPropagation(); quickBackup(font.slot); });
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'btn-icon danger'; delBtn.title = 'Delete slot'; delBtn.innerHTML = '&#128465;';
+  delBtn.addEventListener('click', e => { e.stopPropagation(); promptDeleteSlot(font.slot); });
+
+  actions.appendChild(editBtn);
+  actions.appendChild(backupBtn);
+  actions.appendChild(delBtn);
+
+  div.appendChild(glow);
+  div.appendChild(watermark);
+  div.appendChild(bar);
+  div.appendChild(body);
+  div.appendChild(actions);
+
+  div.addEventListener('click', e => { if (!e.target.closest('.btn-icon')) openFontPanel(font.slot); });
+  div.addEventListener('dragstart', e => { dragSrcSlot = font.slot; div.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
   div.addEventListener('dragend', () => div.classList.remove('dragging'));
   div.addEventListener('dragover', e => { e.preventDefault(); div.classList.add('drag-over'); });
   div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
   div.addEventListener('drop', e => {
     e.preventDefault();
     div.classList.remove('drag-over');
-    const destSlot = font.slot;
-    if (dragSrcSlot && dragSrcSlot !== destSlot) promptSwapSlots(dragSrcSlot, destSlot);
+    if (dragSrcSlot && dragSrcSlot !== font.slot) promptSwapSlots(dragSrcSlot, font.slot);
   });
   return div;
 }
@@ -884,6 +969,8 @@ function openFontPanel(slot) {
   const font = fonts.find(f=>f.slot===slot);
   if (!font) return;
   editingSlot = slot;
+  const { r, g, b } = font.color;
+  document.getElementById('fontPanel').style.setProperty('--blade-rgb', `${r},${g},${b}`);
   document.getElementById('panelTitle').textContent = `Slot ${slot} — ${esc(font.name)}`;
   document.getElementById('panelDeleteBtn').onclick = () => { closePanel(); promptDeleteSlot(slot); };
   const body = document.getElementById('panelBody');
@@ -983,8 +1070,16 @@ function renderSoundCats(font) {
     addInput.type = 'file'; addInput.accept = '.wav'; addInput.style.display = 'none';
     addInput.addEventListener('change', e => addSoundFile(e, font.slot, key));
     addLabel.appendChild(addInput);
+    const rplAllLabel = document.createElement('label');
+    rplAllLabel.className = 'btn btn-ghost btn-sm'; rplAllLabel.title = 'Replace all files in this category';
+    rplAllLabel.textContent = '↺ All';
+    rplAllLabel.addEventListener('click', e => e.stopPropagation());
+    const rplAllInput = document.createElement('input');
+    rplAllInput.type = 'file'; rplAllInput.accept = '.wav'; rplAllInput.multiple = true; rplAllInput.style.display = 'none';
+    rplAllInput.addEventListener('change', e => bulkReplaceFontCategory(e, font.slot, key));
+    rplAllLabel.appendChild(rplAllInput);
     header.appendChild(toggle); header.appendChild(nameSpan);
-    header.appendChild(countSpan); header.appendChild(addLabel);
+    header.appendChild(countSpan); header.appendChild(addLabel); header.appendChild(rplAllLabel);
     header.addEventListener('click', () => toggleCat(header));
 
     // Files
@@ -1180,7 +1275,16 @@ function renderSystem() {
     sec.className = 'system-section';
     const heading = document.createElement('div');
     heading.className = 'system-section-title';
-    heading.textContent = `${title} — ${files.length} files`;
+    const titleSpan = document.createElement('span');
+    titleSpan.textContent = `${title} — ${files.length} files`;
+    const replLabel = document.createElement('label');
+    replLabel.className = 'btn btn-ghost btn-sm'; replLabel.style.marginTop = '-2px';
+    replLabel.textContent = '↺ Replace All'; replLabel.title = `Replace all ${title} files at once`;
+    const replInput = document.createElement('input');
+    replInput.type = 'file'; replInput.accept = '.wav'; replInput.multiple = true; replInput.style.display = 'none';
+    replInput.addEventListener('change', e => bulkReplaceSystemCategory(e, key));
+    replLabel.appendChild(replInput);
+    heading.appendChild(titleSpan); heading.appendChild(replLabel);
     const grid = document.createElement('div');
     grid.className = 'system-grid';
     files.forEach((_, i) => { const r = makeSystemFileRow(key, i, false); if(r) grid.appendChild(r); });
@@ -1228,7 +1332,70 @@ async function replaceSystemFile(event, cat, idx) {
   } catch(e) { showToast('Replace failed: ' + e.message, 'error'); }
 }
 
+async function bulkReplaceFontCategory(event, slot, cat) {
+  const files = [...event.target.files];
+  if (!files.length) return;
+  const font = fonts.find(f => f.slot === parseInt(slot));
+  if (!font) return;
+  const catLabel = SOUND_CATS[cat] || cat;
+  const existing = font.fileMap[cat] || [];
+  showConfirm(
+    `Replace ${catLabel}`,
+    `Replace all <strong>${existing.length}</strong> existing file${existing.length !== 1 ? 's' : ''} in <strong>${catLabel}</strong> with ${files.length} new file${files.length !== 1 ? 's' : ''}?`,
+    async () => {
+      try {
+        for (const e of existing) { try { await font.handle.removeEntry(e.name); } catch {} }
+        const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+        font.fileMap[cat] = [];
+        for (let i = 0; i < sorted.length; i++) {
+          const newName = `${cat} (${i + 1}).wav`;
+          const fh = await font.handle.getFileHandle(newName, { create: true });
+          const w = await fh.createWritable();
+          await w.write(await sorted[i].arrayBuffer());
+          await w.close();
+          font.fileMap[cat].push({ num: i + 1, name: newName, handle: fh });
+        }
+        renderSoundCats(font);
+        showToast(`${catLabel} replaced with ${files.length} file${files.length !== 1 ? 's' : ''}`, 'success');
+      } catch(e) { showToast('Replace failed: ' + e.message, 'error'); }
+    }, 'Replace');
+}
+
+async function bulkReplaceSystemCategory(event, cat) {
+  const files = [...event.target.files];
+  if (!files.length || !sdRoot) return;
+  const existing = systemFileMap[cat] || [];
+  const label = cat.charAt(0).toUpperCase() + cat.slice(1);
+  showConfirm(
+    `Replace ${label}`,
+    `Replace all <strong>${existing.length}</strong> existing file${existing.length !== 1 ? 's' : ''} in <strong>${label}</strong> with ${files.length} new file${files.length !== 1 ? 's' : ''}?`,
+    async () => {
+      try {
+        const settingDir = await sdRoot.getDirectoryHandle('setting');
+        for (const e of existing) { try { await settingDir.removeEntry(e.name); } catch {} }
+        const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+        systemFileMap[cat] = [];
+        for (let i = 0; i < sorted.length; i++) {
+          const newName = `${cat} (${i + 1}).wav`;
+          const fh = await settingDir.getFileHandle(newName, { create: true });
+          const w = await fh.createWritable();
+          await w.write(await sorted[i].arrayBuffer());
+          await w.close();
+          systemFileMap[cat].push({ num: i + 1, name: newName, handle: fh });
+        }
+        renderSystem();
+        showToast(`${label} replaced with ${files.length} file${files.length !== 1 ? 's' : ''}`, 'success');
+      } catch(e) { showToast('Replace failed: ' + e.message, 'error'); }
+    }, 'Replace');
+}
+
 // ─── UI: SETTINGS ─────────────────────────────────────────────────────────────
+
+function updateRange(el, unit) {
+  const pct = (+el.value - +el.min) / (+el.max - +el.min) * 100;
+  el.style.setProperty('--val', pct + '%');
+  el.parentElement.querySelector('.range-val').textContent = el.value + (unit || '');
+}
 
 function renderSettings() {
   if (!configRaw) {
@@ -1237,75 +1404,91 @@ function renderSettings() {
     return;
   }
   const c = configParsed;
-  const num = (key, desc, min='', max='') => `
+  const v = k => c[k] ?? '';
+
+  const num = (key, label, desc, min='', max='') => `
     <div class="setting-row">
-      <div class="setting-label"><div class="setting-name">${key}</div><div class="setting-desc">${desc}</div></div>
-      <div class="setting-control"><input class="form-input" type="number" data-cfg="${key}" value="${c[key]??''}" min="${min}" max="${max}"></div>
+      <div class="setting-label"><div class="setting-name">${label}</div><div class="setting-desc">${desc}</div></div>
+      <div class="setting-control"><input class="form-input" type="number" data-cfg="${key}" value="${v(key)}" min="${min}" max="${max}"></div>
     </div>`;
-  const tog = (key, desc) => `
+
+  const sld = (key, label, desc, min, max, unit='') => {
+    const cur = Number(v(key) || min);
+    const pct = Math.round((cur - min) / (max - min) * 100);
+    return `
     <div class="setting-row">
-      <div class="setting-label"><div class="setting-name">${key}</div><div class="setting-desc">${desc}</div></div>
+      <div class="setting-label"><div class="setting-name">${label}</div><div class="setting-desc">${desc}</div></div>
+      <div class="setting-control setting-slider-wrap">
+        <input type="range" class="form-range" data-cfg="${key}" value="${cur}" min="${min}" max="${max}" style="--val:${pct}%"
+               oninput="updateRange(this,'${unit}')">
+        <span class="range-val">${cur}${unit}</span>
+      </div>
+    </div>`;
+  };
+
+  const tog = (key, label, desc) => `
+    <div class="setting-row">
+      <div class="setting-label"><div class="setting-name">${label}</div><div class="setting-desc">${desc}</div></div>
       <div class="setting-control">
-        <label class="toggle-wrap"><input type="checkbox" data-cfg="${key}" ${c[key]==='1'?'checked':''}> ${c[key]==='1'?'On':'Off'}</label>
+        <label class="toggle-wrap"><input type="checkbox" data-cfg="${key}" ${c[key]==='1'?'checked':''}><span class="toggle-text">${c[key]==='1'?'On':'Off'}</span></label>
       </div>
     </div>`;
 
   document.getElementById('settingsContent').innerHTML = `
     <div class="settings-section">
       <div class="settings-section-title">Audio</div>
-      ${num('volume','Max volume (0–100, do not exceed 100)',0,100)}
-      ${num('current_volume','Current volume level',0,100)}
-      ${num('dimming','Blade brightness % (0–100)',0,100)}
+      ${sld('volume','Max Volume','Hard output ceiling — keep at or below 100 to prevent distortion and protect your speaker.',0,100)}
+      ${sld('current_volume','Current Volume','Active playback level. This is the volume you hear right now.',0,100)}
+      ${sld('dimming','Blade Brightness','LED output intensity as a percentage. Reduce to extend battery life on long sessions.',0,100,'%')}
     </div>
     <div class="settings-section">
       <div class="settings-section-title">Blade</div>
-      ${num('main_blade_pixel_led_number','Main blade LED count (default 128 for 92cm)',1,500)}
-      ${num('side_blade_pixel_led_number','Side blade LED count for crossguard/double blade',1,500)}
-      ${num('side_blade_delay_time','Side blade delay time (ms)',0,5000)}
+      ${num('main_blade_pixel_led_number','Main Blade Pixel Count','Number of addressable LEDs in your main blade. A standard 92 cm neopixel blade has 128 pixels.',1,500)}
+      ${num('side_blade_pixel_led_number','Side / Crossguard Pixel Count','LED count for a secondary blade such as a crossguard or dual-blade extension. Set to 0 if none.',0,500)}
+      ${sld('side_blade_delay_time','Side Blade Ignition Delay','How many milliseconds after the main blade lights before the side blade activates. Creates a staggered ignition effect.',0,3000,'ms')}
     </div>
     <div class="settings-section">
       <div class="settings-section-title">Behavior</div>
-      ${num('clash_sensitivity','Clash sensitivity — lower = easier to trigger (default 5)',1,20)}
-      ${num('power_on_time','Power on animation time (ms)',0,10000)}
-      ${num('power_off_time','Power off animation time (ms)',0,10000)}
-      ${num('auto_power_off_time','Auto power off time (ms, default 3600000)',60000,7200000)}
-      ${tog('flash_on_clash','Flash on clash effect')}
+      ${sld('clash_sensitivity','Clash Sensitivity','Impact force required to register a clash. Lower values are more sensitive and trigger on lighter contact.',1,20)}
+      ${num('power_on_time','Ignition Duration (ms)','Length of the blade-on animation in milliseconds. Should match or be shorter than your font\'s ignition sound.',0,9999)}
+      ${num('power_off_time','Retraction Duration (ms)','Length of the blade-off animation in milliseconds. Should match or be shorter than your font\'s retraction sound.',0,9999)}
+      ${num('auto_power_off_time','Auto Power-Off (ms)','Idle time before the saber shuts itself off. Default is 3,600,000 ms (1 hour). Set higher to keep it on longer.',60000,7200000)}
+      ${tog('flash_on_clash','Flash on Clash','Briefly burst the blade white at the exact moment of impact for a cinematic hit effect.')}
     </div>
     <div class="settings-section">
       <div class="settings-section-title">Motion Control</div>
-      ${tog('motion_control','Enable motion control')}
-      ${tog('twist_on','Twist-on to ignite')}
-      ${tog('twist_off','Twist-off to retract')}
-      ${num('twist_sensitivity','Twist sensitivity (default 235)',50,1000)}
-      ${tog('pull_push_on','Pull-to-ignite motion')}
-      ${tog('push_pull_off','Push-to-retract motion')}
-      ${tog('swing_on','Swing-on to ignite')}
-      ${num('accentswing_sensitivity','Accent swing sensitivity (default 30)',5,500)}
+      ${tog('motion_control','Enable Motion Control','Master switch for all gesture-based ignition and retraction. Disable to use button-only operation.')}
+      ${tog('twist_on','Twist to Ignite','A sharp hilt rotation powers the blade on. Useful when drawing from a hanger or display.')}
+      ${tog('twist_off','Twist to Retract','A sharp hilt rotation powers the blade off.')}
+      ${num('twist_sensitivity','Twist Threshold','Angular velocity required to register a twist gesture. Higher values demand a faster, more deliberate motion. Default: 235.',50,1000)}
+      ${tog('pull_push_on','Pull to Ignite','A rapid upward wrist motion activates the blade — like drawing from a belt.')}
+      ${tog('push_pull_off','Push to Retract','A rapid downward wrist motion deactivates the blade.')}
+      ${tog('swing_on','Swing to Ignite','A sharp swinging motion ignites the blade. Ideal for dramatic reveal moves.')}
+      ${sld('accentswing_sensitivity','Swing Threshold','Movement speed required to trigger swing ignition. Higher values need a faster swing. Default: 30.',5,150)}
     </div>
     <div class="settings-section">
       <div class="settings-section-title">Blade Modes</div>
-      ${tog('torch_mode','Torch mode')}
-      ${tog('velocity_mode','Velocity mode')}
-      ${tog('multiblock_mode','Multi-block mode')}
-      ${tog('multilock_mode','Multi-lock mode')}
-      ${tog('lightning_block_mode','Lightning block mode')}
-      ${tog('blaster_mode','Blaster mode')}
-      ${tog('ghost_mode','Ghost mode')}
+      ${tog('torch_mode','Torch Mode','Blade stays fully lit without swing effects — a steady unmoving beam. Useful for photography or display.')}
+      ${tog('velocity_mode','Velocity Mode','Blade brightness scales with movement speed. Dim when still, bright when swung.')}
+      ${tog('multiblock_mode','Multi-Block Mode','Enables the multi-blade block deflection animation.')}
+      ${tog('multilock_mode','Multi-Lock Mode','Enables the crossed-sabers lockup animation when two blades press together.')}
+      ${tog('lightning_block_mode','Lightning Block','Crackling lightning plays on the blade during a sustained lockup.')}
+      ${tog('blaster_mode','Blaster Mode','Blade behaves as a blaster bolt with alternate hit effects and sounds.')}
+      ${tog('ghost_mode','Ghost Mode','Blade renders semi-transparently for a ghostly or spectral appearance.')}
     </div>
     <div class="settings-section">
-      <div class="settings-section-title">Pre-On Blade Timing (ms) — match to your font's preon sound length</div>
-      ${[1,2,3,4,5,6,7].map(i=>num(`blade${i}_on_time`,`Blade style ${i} pre-on time`,0,10000)).join('')}
+      <div class="settings-section-title">Pre-On Timing — set each value to match the length of your font's preon audio clip</div>
+      ${[1,2,3,4,5,6,7].map(i => num(`blade${i}_on_time`,`Style ${i} Pre-On Duration (ms)`,`Delay before blade style ${i} fully ignites. The preon animation plays during this window — set it equal to your font's preon clip length.`,0,10000)).join('')}
     </div>
     <div class="settings-section">
       <div class="settings-section-title">Hardware</div>
-      ${tog('bluetooth','Bluetooth enabled')}
-      ${num('button_number','Number of buttons (1 or 2)',1,2)}
-      ${num('motor_speed','Rotating crystal chamber motor speed (0–100)',0,100)}
+      ${tog('bluetooth','Bluetooth','Enable Bluetooth for the companion app or wireless configuration. Disable to save battery when not in use.')}
+      ${num('button_number','Button Count','Number of physical activation buttons on your hilt (1 or 2). Affects which button combos are available.',1,2)}
+      ${sld('motor_speed','Crystal Chamber Motor Speed','Speed of the rotating crystal chamber motor, if your hilt has one installed. Set to 0 to disable.',0,100,'%')}
     </div>`;
 
-  // Fix toggle labels on change
   document.querySelectorAll('[data-cfg] input[type=checkbox]').forEach(cb => {
-    cb.onchange = () => cb.nextSibling.textContent = ' ' + (cb.checked ? 'On' : 'Off');
+    cb.onchange = () => cb.nextElementSibling.textContent = cb.checked ? 'On' : 'Off';
   });
 }
 
@@ -1512,6 +1695,9 @@ function esc(s) {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 
 function init() {
+  document.querySelectorAll('[data-icon]').forEach(el => {
+    el.innerHTML = ICONS[el.dataset.icon] || '';
+  });
   if (!window.showDirectoryPicker) {
     document.querySelector('.landing p').textContent =
       'This app requires Chrome or Edge — File System Access API is not supported in this browser.';
