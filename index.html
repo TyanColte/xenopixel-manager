@@ -177,6 +177,11 @@ h3{font-family:'Barlow Semi Condensed',sans-serif;font-size:15px;font-weight:600
 .app-title .icon{margin-right:2px}
 .app-title .icon svg{width:19px;height:19px}
 .system-section-title{display:flex!important;align-items:center;justify-content:space-between}
+.speed-input-wrap{display:flex;align-items:center;gap:6px}
+.speed-input-wrap .form-input{flex:1}
+.btn-match-speed{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text-dim);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,color .15s,border-color .15s}
+.btn-match-speed:hover{background:var(--ui);color:#fff;border-color:var(--ui)}
+.btn-match-speed.spinning svg{animation:spin .6s linear infinite}
 </style>
 </head>
 <body>
@@ -974,6 +979,18 @@ function toggleSort() {
   renderFonts();
 }
 
+async function getAudioDuration(handle) {
+  try {
+    const file = await handle.getFile();
+    const url = URL.createObjectURL(file);
+    return await new Promise(resolve => {
+      const a = new Audio(url);
+      a.addEventListener('loadedmetadata', () => { URL.revokeObjectURL(url); resolve(Math.round(a.duration * 1000)); });
+      a.addEventListener('error', () => { URL.revokeObjectURL(url); resolve(null); });
+    });
+  } catch { return null; }
+}
+
 // ─── UI: FONT EDITOR PANEL ────────────────────────────────────────────────────
 
 function openFontPanel(slot) {
@@ -1035,11 +1052,17 @@ function openFontPanel(slot) {
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Ignition Speed (ms)</label>
-        <input class="form-input" type="number" id="pOnSpeed" value="${params[6] ?? 200}" min="50" max="9999">
+        <div class="speed-input-wrap">
+          <input class="form-input" type="number" id="pOnSpeed" value="${params[6] ?? 200}" min="50" max="9999">
+          <button class="btn-match-speed" id="pOnSpeedMatch" title="Match to font sound"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Retraction Speed (ms)</label>
-        <input class="form-input" type="number" id="pOffSpeed" value="${(font.fc?.paramsStr||'').includes('%') ? String(params[7])+'%' : (params[7] ?? 500)}" min="50" max="9999">
+        <div class="speed-input-wrap">
+          <input class="form-input" type="number" id="pOffSpeed" value="${(font.fc?.paramsStr||'').includes('%') ? String(params[7])+'%' : (params[7] ?? 500)}" min="50" max="9999">
+          <button class="btn-match-speed" id="pOffSpeedMatch" title="Match to font sound"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+        </div>
       </div>
     </div>
     <div class="divider"></div>
@@ -1047,6 +1070,23 @@ function openFontPanel(slot) {
     <div id="pSoundCats"></div>
   `;
   renderSoundCats(font);
+
+  async function wireMatchBtn(btnId, inputId, cat, label) {
+    document.getElementById(btnId).addEventListener('click', async () => {
+      const files = font.fileMap[cat] || [];
+      if (!files.length) { showToast(`No ${label} sound found in this slot`, 'error'); return; }
+      const btn = document.getElementById(btnId);
+      btn.classList.add('spinning');
+      const ms = await getAudioDuration(files[0].handle);
+      btn.classList.remove('spinning');
+      if (ms == null) { showToast('Could not read sound duration', 'error'); return; }
+      document.getElementById(inputId).value = ms;
+      showToast(`${label} speed set to ${ms} ms`, 'success');
+    });
+  }
+  wireMatchBtn('pOnSpeedMatch', 'pOnSpeed', 'in', 'Ignition');
+  wireMatchBtn('pOffSpeedMatch', 'pOffSpeed', 'out', 'Retraction');
+
   document.getElementById('panelOverlay').classList.add('open');
   document.getElementById('fontPanel').classList.add('open');
 }
