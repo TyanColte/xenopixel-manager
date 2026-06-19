@@ -1,0 +1,7 @@
+services:
+  xenopixel-manager:
+    image: ghcr.io/tyancolte/xenopixel-manager:latest
+    container_name: xenopixel-manager
+    ports:
+      - "8080:80"
+    restart: unless-stopped

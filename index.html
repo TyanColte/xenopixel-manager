@@ -961,29 +961,71 @@ function renderSoundCats(font) {
     const files = font.fileMap[key] || [];
     const sec = document.createElement('div');
     sec.className = 'cat-section';
-    const countBadge = files.length ? `<span class="cat-count">${files.length} file${files.length!==1?'s':''}</span>` : '<span class="cat-count" style="color:var(--danger)">missing</span>';
-    sec.innerHTML = `
-      <div class="cat-header" onclick="toggleCat(this)">
-        <span class="cat-toggle">&#9654;</span>
-        <span class="cat-name">${label}</span>
-        ${countBadge}
-        <label class="btn btn-ghost btn-sm" onclick="event.stopPropagation()">
-          + Add <input type="file" accept=".wav" style="display:none" onchange="addSoundFile(event,'${font.slot}','${key}')">
-        </label>
-      </div>
-      <div class="cat-files">
-        ${files.map((f,i) => `
-          <div class="sound-file" id="sf-${font.slot}-${key}-${i}">
-            <button class="play-btn" onclick="handlePlayBtn(this,'${font.slot}','${key}',${i})" title="Play">&#9654;</button>
-            <span class="sound-name">${f.name}</span>
-            <label class="btn btn-ghost btn-sm" title="Replace">
-              Replace <input type="file" accept=".wav" style="display:none" onchange="replaceSoundFile(event,${font.slot},'${key}',${i})">
-            </label>
-            <button class="btn-icon danger btn-sm" title="Delete" onclick="deleteSoundFile(${font.slot},'${key}',${i})">&#128465;</button>
-          </div>`).join('')}
-      </div>`;
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'cat-header';
+    const toggle = document.createElement('span');
+    toggle.className = 'cat-toggle';
+    toggle.innerHTML = '&#9654;';
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'cat-name';
+    nameSpan.textContent = label;
+    const countSpan = document.createElement('span');
+    countSpan.className = 'cat-count';
+    if (files.length) { countSpan.textContent = `${files.length} file${files.length!==1?'s':''}`; }
+    else { countSpan.textContent = 'missing'; countSpan.style.color = 'var(--danger)'; }
+    const addLabel = document.createElement('label');
+    addLabel.className = 'btn btn-ghost btn-sm';
+    addLabel.textContent = '+ Add';
+    addLabel.addEventListener('click', e => e.stopPropagation());
+    const addInput = document.createElement('input');
+    addInput.type = 'file'; addInput.accept = '.wav'; addInput.style.display = 'none';
+    addInput.addEventListener('change', e => addSoundFile(e, font.slot, key));
+    addLabel.appendChild(addInput);
+    header.appendChild(toggle); header.appendChild(nameSpan);
+    header.appendChild(countSpan); header.appendChild(addLabel);
+    header.addEventListener('click', () => toggleCat(header));
+
+    // Files
+    const filesDiv = document.createElement('div');
+    filesDiv.className = 'cat-files';
+    files.forEach((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'sound-file';
+      const playBtn = document.createElement('button');
+      playBtn.className = 'play-btn'; playBtn.title = 'Play'; playBtn.innerHTML = '&#9654;';
+      playBtn.addEventListener('click', () => handlePlayBtnEl(playBtn, font.slot, key, i));
+      const nameEl = document.createElement('span');
+      nameEl.className = 'sound-name';
+      nameEl.textContent = f.name;
+      const repLabel = document.createElement('label');
+      repLabel.className = 'btn btn-ghost btn-sm'; repLabel.title = 'Replace';
+      repLabel.textContent = 'Replace';
+      const repInput = document.createElement('input');
+      repInput.type = 'file'; repInput.accept = '.wav'; repInput.style.display = 'none';
+      repInput.addEventListener('change', e => replaceSoundFile(e, font.slot, key, i));
+      repLabel.appendChild(repInput);
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn-icon danger btn-sm'; delBtn.title = 'Delete'; delBtn.innerHTML = '&#128465;';
+      delBtn.addEventListener('click', () => deleteSoundFile(font.slot, key, i));
+      row.appendChild(playBtn); row.appendChild(nameEl);
+      row.appendChild(repLabel); row.appendChild(delBtn);
+      filesDiv.appendChild(row);
+    });
+
+    sec.appendChild(header); sec.appendChild(filesDiv);
     container.appendChild(sec);
   }
+}
+
+async function handlePlayBtnEl(btn, slot, key, idx) {
+  const font = fonts.find(f=>f.slot===slot);
+  if (!font) return;
+  const file = font.fileMap[key]?.[idx];
+  if (!file) return;
+  if (currentPlayBtn === btn) { stopAudio(); return; }
+  await playAudio(file.handle, btn);
 }
 
 function toggleCat(header) {
@@ -1089,14 +1131,41 @@ function closePanel() {
 
 // ─── UI: SYSTEM SOUNDS ────────────────────────────────────────────────────────
 
+function makeSystemFileRow(cat, idx, showReplace) {
+  const entry = systemFileMap[cat]?.[idx];
+  if (!entry) return null;
+  const row = document.createElement('div');
+  row.className = 'system-file';
+  const playBtn = document.createElement('button');
+  playBtn.className = 'play-btn'; playBtn.innerHTML = '&#9654;';
+  playBtn.addEventListener('click', () => {
+    if (currentPlayBtn === playBtn) { stopAudio(); return; }
+    playAudio(entry.handle, playBtn);
+  });
+  const nameEl = document.createElement('span');
+  nameEl.className = 'system-file-name';
+  nameEl.textContent = entry.name;
+  row.appendChild(playBtn); row.appendChild(nameEl);
+  if (showReplace) {
+    const repLabel = document.createElement('label');
+    repLabel.className = 'btn btn-ghost btn-sm'; repLabel.title = 'Replace';
+    repLabel.textContent = 'Replace';
+    const repInput = document.createElement('input');
+    repInput.type = 'file'; repInput.accept = '.wav'; repInput.style.display = 'none';
+    repInput.addEventListener('change', e => replaceSystemFile(e, cat, idx));
+    repLabel.appendChild(repInput);
+    row.appendChild(repLabel);
+  }
+  return row;
+}
+
 function renderSystem() {
   const el = document.getElementById('systemContent');
+  el.innerHTML = '';
   if (!Object.keys(systemFileMap).length) {
     el.innerHTML = '<div class="muted" style="padding:20px">No system files found.</div>';
     return;
   }
-  let html = '';
-  // Numbered groups
   const namedGroups = {
     volume: 'Volume Levels (1–100)',
     power: 'Power/Battery Levels (1–100)',
@@ -1107,37 +1176,32 @@ function renderSystem() {
   for (const [key, title] of Object.entries(namedGroups)) {
     const files = systemFileMap[key];
     if (!files?.length) continue;
-    html += `<div class="system-section">
-      <div class="system-section-title">${title} — ${files.length} files</div>
-      <div class="system-grid">
-        ${files.map((f,i) => `
-          <div class="system-file">
-            <button class="play-btn" onclick="handleSystemPlay(this,'${key}',${i})">&#9654;</button>
-            <span class="system-file-name">${f.name}</span>
-          </div>`).join('')}
-      </div>
-    </div>`;
+    const sec = document.createElement('div');
+    sec.className = 'system-section';
+    const heading = document.createElement('div');
+    heading.className = 'system-section-title';
+    heading.textContent = `${title} — ${files.length} files`;
+    const grid = document.createElement('div');
+    grid.className = 'system-grid';
+    files.forEach((_, i) => { const r = makeSystemFileRow(key, i, false); if(r) grid.appendChild(r); });
+    sec.appendChild(heading); sec.appendChild(grid);
+    el.appendChild(sec);
   }
-  // Single files
   const singles = Object.entries(systemFileMap).filter(([k]) => !namedGroups[k]);
   if (singles.length) {
-    html += `<div class="system-section">
-      <div class="system-section-title">System Voice Lines</div>
-      <div class="system-grid">`;
+    const sec = document.createElement('div');
+    sec.className = 'system-section';
+    const heading = document.createElement('div');
+    heading.className = 'system-section-title';
+    heading.textContent = 'System Voice Lines';
+    const grid = document.createElement('div');
+    grid.className = 'system-grid';
     for (const [key, files] of singles) {
-      for (let i=0; i<files.length; i++) {
-        html += `<div class="system-file">
-          <button class="play-btn" onclick="handleSystemPlayKey(this,'${key}',${i})">&#9654;</button>
-          <span class="system-file-name">${files[i].name}</span>
-          <label class="btn btn-ghost btn-sm" title="Replace">
-            Replace <input type="file" accept=".wav" style="display:none" onchange="replaceSystemFile(event,'${key}',${i})">
-          </label>
-        </div>`;
-      }
+      files.forEach((_, i) => { const r = makeSystemFileRow(key, i, true); if(r) grid.appendChild(r); });
     }
-    html += `</div></div>`;
+    sec.appendChild(heading); sec.appendChild(grid);
+    el.appendChild(sec);
   }
-  el.innerHTML = html;
 }
 
 async function handleSystemPlay(btn, cat, idx) {
