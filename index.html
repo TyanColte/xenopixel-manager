@@ -53,6 +53,10 @@ main{flex:1;padding:24px;overflow-y:auto;max-width:1400px;margin:0 auto;width:10
 .font-card:hover .font-card-actions{opacity:1}
 .add-slot-card{background:var(--surface);border:2px dashed var(--border);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;min-height:120px;cursor:pointer;color:var(--text-muted);font-size:14px;gap:8px;transition:border-color .15s,color .15s}
 .add-slot-card:hover{border-color:var(--ui);color:var(--ui)}
+.empty-card-notice{grid-column:1/-1;border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;text-align:center;background:var(--surface)}
+.empty-card-notice h3{margin:0 0 6px;font-size:15px;color:var(--text)}
+.empty-card-notice p{margin:0 0 18px;font-size:13px;color:var(--text-dim)}
+.empty-card-notice .notice-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 /* Buttons */
 .btn{padding:8px 16px;border-radius:var(--radius-sm);border:none;font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s,opacity .15s;display:inline-flex;align-items:center;gap:6px;letter-spacing:.01em}
 .btn:disabled{opacity:.4;cursor:not-allowed}
@@ -223,6 +227,7 @@ h3{font-family:'Barlow Semi Condensed',sans-serif;font-size:15px;font-weight:600
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary btn-sm" id="sortBtn" onclick="toggleSort()">&#8597; Slot #</button>
+        <button class="btn btn-secondary btn-sm" onclick="saveAllConfigs()" title="Write all font configs and settings to SD card">&#128190; Save All</button>
       </div>
     </div>
     <div class="font-grid" id="fontGrid"></div>
@@ -782,27 +787,65 @@ function downloadBlob(blob, filename) {
 
 // ─── CONFIG.INI ───────────────────────────────────────────────────────────────
 
-async function saveSettings() {
-  if (!sdRoot) return;
+async function saveSettings(silent = false) {
+  if (!sdRoot) return false;
   try {
-    const settingDir = await sdRoot.getDirectoryHandle('setting');
-    const lines = configRaw.split('\n');
-    const updated = lines.map(line => {
-      const t = line.trim();
-      if (t.startsWith('#') || !t) return line;
-      const eq = t.indexOf('=');
-      if (eq < 0) return line;
-      const key = t.substring(0, eq).trim();
-      const el = document.querySelector(`[data-cfg="${key}"]`);
-      if (!el) return line;
-      const val = el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value;
-      return `${key}=${val}`;
-    });
-    await writeText(settingDir, 'config.ini', updated.join('\n'));
-    configRaw = updated.join('\n');
-    configParsed = parseINI(configRaw);
-    showToast('Settings saved', 'success');
-  } catch(e) { showToast('Save failed: ' + e.message, 'error'); }
+    const settingDir = await sdRoot.getDirectoryHandle('setting', { create: true });
+    let ini;
+    if (configRaw) {
+      const lines = configRaw.split('\n');
+      const updated = lines.map(line => {
+        const t = line.trim();
+        if (t.startsWith('#') || !t) return line;
+        const eq = t.indexOf('=');
+        if (eq < 0) return line;
+        const key = t.substring(0, eq).trim();
+        const el = document.querySelector(`[data-cfg="${key}"]`);
+        if (!el) return line;
+        const val = el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value;
+        return `${key}=${val}`;
+      });
+      ini = updated.join('\n');
+    } else {
+      const parts = [];
+      document.querySelectorAll('[data-cfg]').forEach(el => {
+        const val = el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value;
+        parts.push(`${el.dataset.cfg}=${val}`);
+      });
+      ini = parts.join('\n');
+    }
+    await writeText(settingDir, 'config.ini', ini);
+    configRaw = ini;
+    configParsed = parseINI(ini);
+    if (!silent) showToast('Settings saved', 'success');
+    return true;
+  } catch(e) {
+    if (!silent) showToast('Save failed: ' + e.message, 'error');
+    return false;
+  }
+}
+
+async function saveAllConfigs() {
+  if (!sdRoot) return;
+  let fontsSaved = 0, errors = 0;
+  for (const font of fonts) {
+    try {
+      await writeText(font.handle, 'fontconfig.ini',
+        serializeFontConfig(font.fc?.name ?? font.name, font.fc?.color ?? font.color, font.fc?.paramsStr ?? ''));
+      fontsSaved++;
+    } catch { errors++; }
+  }
+  const hasDomSettings = document.querySelectorAll('[data-cfg]').length > 0;
+  const settingsSaved = (configRaw || hasDomSettings) ? await saveSettings(true) : false;
+  const parts = [];
+  if (fontsSaved) parts.push(`${fontsSaved} font config${fontsSaved !== 1 ? 's' : ''}`);
+  if (settingsSaved) parts.push('hardware settings');
+  const msg = parts.length
+    ? `Saved: ${parts.join(' + ')}`
+    : 'Nothing to save — open Settings first to configure hardware config';
+  const needsSettings = !settingsSaved && fonts.length > 0;
+  showToast(msg + (needsSettings ? '. Visit Settings to save hardware config.' : ''), settingsSaved || fontsSaved ? 'success' : 'info');
+  if (errors) showToast(`${errors} font${errors !== 1 ? 's' : ''} failed to save`, 'error');
 }
 
 // ─── UI: FONTS VIEW ───────────────────────────────────────────────────────────
@@ -815,6 +858,32 @@ function renderFonts() {
   const grid = document.getElementById('fontGrid');
   grid.innerHTML = '';
   list.forEach(font => grid.appendChild(makeFontCard(font)));
+
+  if (fonts.length === 0 && sdRoot) {
+    const notice = document.createElement('div');
+    notice.className = 'empty-card-notice';
+    const h = document.createElement('h3');
+    h.textContent = 'No font slots found on this SD card';
+    const p = document.createElement('p');
+    p.textContent = 'Restore from a full backup ZIP to populate this card, or import individual font packages.';
+    const actions = document.createElement('div');
+    actions.className = 'notice-actions';
+    const btnRestore = document.createElement('button');
+    btnRestore.className = 'btn btn-primary btn-sm';
+    btnRestore.textContent = 'Restore from backup';
+    btnRestore.addEventListener('click', () => showView('backup'));
+    const btnImport = document.createElement('button');
+    btnImport.className = 'btn btn-secondary btn-sm';
+    btnImport.textContent = 'Import font';
+    btnImport.addEventListener('click', () => showView('import'));
+    actions.appendChild(btnRestore);
+    actions.appendChild(btnImport);
+    notice.appendChild(h);
+    notice.appendChild(p);
+    notice.appendChild(actions);
+    grid.appendChild(notice);
+  }
+
   // Add slot button
   const add = document.createElement('div');
   add.className = 'add-slot-card';
