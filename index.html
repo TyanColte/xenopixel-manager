@@ -356,6 +356,7 @@ let configRaw = '';
 let configParsed = {};
 let editingSlot = null;
 let currentAudio = null;
+let currentAudioUrl = null;
 let currentPlayBtn = null;
 let dragSrcSlot = null;
 let sortByName = false;
@@ -546,12 +547,13 @@ async function playAudio(handle, btn) {
   stopAudio();
   try {
     const file = await handle.getFile();
-    const url = URL.createObjectURL(file);
-    currentAudio = new Audio(url);
+    currentAudioUrl = URL.createObjectURL(file);
+    currentAudio = new Audio(currentAudioUrl);
     currentPlayBtn = btn;
     if (btn) btn.classList.add('playing');
     currentAudio.onended = () => {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(currentAudioUrl);
+      currentAudioUrl = null;
       if (currentPlayBtn) currentPlayBtn.classList.remove('playing');
       currentAudio = null; currentPlayBtn = null;
     };
@@ -561,6 +563,7 @@ async function playAudio(handle, btn) {
 
 function stopAudio() {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  if (currentAudioUrl) { URL.revokeObjectURL(currentAudioUrl); currentAudioUrl = null; }
   if (currentPlayBtn) { currentPlayBtn.classList.remove('playing'); currentPlayBtn = null; }
 }
 
@@ -568,21 +571,29 @@ function stopAudio() {
 
 async function swapSlots(slotA, slotB) {
   const tmpName = '__xp_swap_tmp__';
-  // A → tmp
   const tmpDir = await getOrCreateDir(sdRoot, tmpName);
   const aDirH = await sdRoot.getDirectoryHandle(String(slotA));
   const bDirH = await sdRoot.getDirectoryHandle(String(slotB));
   await copyDir(aDirH, tmpDir);
-  // Clear A, copy B → A
-  await sdRoot.removeEntry(String(slotA), { recursive: true });
-  const newA = await getOrCreateDir(sdRoot, String(slotA));
-  await copyDir(bDirH, newA);
-  // Clear B, copy tmp → B
-  await sdRoot.removeEntry(String(slotB), { recursive: true });
-  const newB = await getOrCreateDir(sdRoot, String(slotB));
-  await copyDir(tmpDir, newB);
-  // Remove tmp
-  await sdRoot.removeEntry(tmpName, { recursive: true });
+  try {
+    await sdRoot.removeEntry(String(slotA), { recursive: true });
+    const newA = await getOrCreateDir(sdRoot, String(slotA));
+    await copyDir(bDirH, newA);
+    await sdRoot.removeEntry(String(slotB), { recursive: true });
+    const newB = await getOrCreateDir(sdRoot, String(slotB));
+    await copyDir(tmpDir, newB);
+  } catch (e) {
+    // Attempt to restore slot A from tmp if it was already deleted
+    try {
+      if (!await dirExists(sdRoot, String(slotA))) {
+        const restoreA = await getOrCreateDir(sdRoot, String(slotA));
+        await copyDir(tmpDir, restoreA);
+      }
+    } catch {}
+    throw e;
+  } finally {
+    try { await sdRoot.removeEntry(tmpName, { recursive: true }); } catch {}
+  }
 }
 
 async function deleteSlot(slot) {
@@ -675,7 +686,7 @@ async function restoreFromZip(file) {
     }
   }
   if (zip.files['setting/config.ini']) {
-    const settingDir = await sdRoot.getDirectoryHandle('setting');
+    const settingDir = await sdRoot.getDirectoryHandle('setting', { create: true });
     for (const [path, entry] of Object.entries(zip.files)) {
       if (!path.startsWith('setting/') || entry.dir) continue;
       const name = path.substring('setting/'.length);
@@ -1024,11 +1035,11 @@ function openFontPanel(slot) {
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Ignition Speed (ms)</label>
-        <input class="form-input" type="number" id="pOnSpeed" value="${params[6]||200}" min="50" max="9999">
+        <input class="form-input" type="number" id="pOnSpeed" value="${params[6] ?? 200}" min="50" max="9999">
       </div>
       <div class="form-group">
         <label class="form-label">Retraction Speed (ms)</label>
-        <input class="form-input" type="number" id="pOffSpeed" value="${(font.fc?.paramsStr||'').includes('%') ? String(params[7])+'%' : (params[7]||500)}" min="50" max="9999">
+        <input class="form-input" type="number" id="pOffSpeed" value="${(font.fc?.paramsStr||'').includes('%') ? String(params[7])+'%' : (params[7] ?? 500)}" min="50" max="9999">
       </div>
     </div>
     <div class="divider"></div>
@@ -1233,9 +1244,9 @@ function makeSystemFileRow(cat, idx, showReplace) {
   row.className = 'system-file';
   const playBtn = document.createElement('button');
   playBtn.className = 'play-btn'; playBtn.innerHTML = '&#9654;';
-  playBtn.addEventListener('click', () => {
+  playBtn.addEventListener('click', async () => {
     if (currentPlayBtn === playBtn) { stopAudio(); return; }
-    playAudio(entry.handle, playBtn);
+    await playAudio(entry.handle, playBtn);
   });
   const nameEl = document.createElement('span');
   nameEl.className = 'system-file-name';
@@ -1337,7 +1348,7 @@ async function bulkReplaceFontCategory(event, slot, cat) {
   if (!files.length) return;
   const font = fonts.find(f => f.slot === parseInt(slot));
   if (!font) return;
-  const catLabel = SOUND_CATS[cat] || cat;
+  const catLabel = SOUND_CATS[cat] || esc(cat);
   const existing = font.fileMap[cat] || [];
   showConfirm(
     `Replace ${catLabel}`,
@@ -1365,7 +1376,7 @@ async function bulkReplaceSystemCategory(event, cat) {
   const files = [...event.target.files];
   if (!files.length || !sdRoot) return;
   const existing = systemFileMap[cat] || [];
-  const label = cat.charAt(0).toUpperCase() + cat.slice(1);
+  const label = esc(cat.charAt(0).toUpperCase() + cat.slice(1));
   showConfirm(
     `Replace ${label}`,
     `Replace all <strong>${existing.length}</strong> existing file${existing.length !== 1 ? 's' : ''} in <strong>${label}</strong> with ${files.length} new file${files.length !== 1 ? 's' : ''}?`,
@@ -1409,7 +1420,7 @@ function renderSettings() {
   const num = (key, label, desc, min='', max='') => `
     <div class="setting-row">
       <div class="setting-label"><div class="setting-name">${label}</div><div class="setting-desc">${desc}</div></div>
-      <div class="setting-control"><input class="form-input" type="number" data-cfg="${key}" value="${v(key)}" min="${min}" max="${max}"></div>
+      <div class="setting-control"><input class="form-input" type="number" data-cfg="${key}" value="${esc(v(key))}" min="${min}" max="${max}"></div>
     </div>`;
 
   const sld = (key, label, desc, min, max, unit='') => {
@@ -1487,7 +1498,7 @@ function renderSettings() {
       ${sld('motor_speed','Crystal Chamber Motor Speed','Speed of the rotating crystal chamber motor, if your hilt has one installed. Set to 0 to disable.',0,100,'%')}
     </div>`;
 
-  document.querySelectorAll('[data-cfg] input[type=checkbox]').forEach(cb => {
+  document.querySelectorAll('input[type=checkbox][data-cfg]').forEach(cb => {
     cb.onchange = () => cb.nextElementSibling.textContent = cb.checked ? 'On' : 'Off';
   });
 }
@@ -1562,7 +1573,7 @@ async function doRestore(event) {
   if (!file) return;
   showConfirm('Restore from ZIP',
     `This will overwrite matching slots on the SD card with contents from <strong>${esc(file.name)}</strong>. Continue?`,
-    () => restoreFromZip(file), 'Restore');
+    async () => { try { await restoreFromZip(file); } catch(e) { showToast('Restore failed: ' + e.message, 'error'); } }, 'Restore');
 }
 
 // ─── UI: IMPORT ───────────────────────────────────────────────────────────────
@@ -1630,8 +1641,7 @@ function openImportModal(suggestedName) {
   const usedSlots = new Set(fonts.map(f=>f.slot));
   let next = 1; while(usedSlots.has(next)) next++;
   sel.innerHTML = `<option value="${next}">Slot ${next} (new)</option>` +
-    fonts.map(f=>`<option value="${f.slot}">Slot ${f.slot} — ${esc(f.name)}</option>`).join('') +
-    `<option value="${next}">Slot ${next} (new)</option>`;
+    fonts.map(f=>`<option value="${f.slot}">Slot ${f.slot} — ${esc(f.name)}</option>`).join('');
   sel.onchange = () => {
     const v = parseInt(sel.value);
     document.getElementById('importSlotWarning').style.display = usedSlots.has(v) ? '' : 'none';
